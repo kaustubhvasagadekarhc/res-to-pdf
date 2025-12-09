@@ -250,14 +250,16 @@ export class PDFGeneratorService {
               width: contentWidth,
             });
           }
-          doc.moveDown(0.4);
+
           if (project.description) {
+            doc.moveDown(0.4);
             doc.font('Helvetica-Bold').fontSize(10).text('Description:');
             doc.moveDown(0.2);
             doc.font('Helvetica').fontSize(10).text(project.description, { width: contentWidth });
           }
-          doc.moveDown(0.4);
+
           if (project.responsibilities && project.responsibilities.length) {
+            doc.moveDown(0.4);
             doc.font('Helvetica-Bold').fontSize(10).text('Responsibilities:');
 
             doc.moveDown(0.4);
@@ -270,8 +272,9 @@ export class PDFGeneratorService {
               });
             });
           }
-          doc.moveDown(0.4);
+
           if (project.technologies) {
+            doc.moveDown(0.4);
             doc.font('Helvetica-Bold').fontSize(10).text('Technologies:');
             doc.moveDown(0.2);
             const techStr = Array.isArray(project.technologies)
@@ -297,6 +300,7 @@ export class PDFGeneratorService {
     // =====================================================================
     // EDUCATION
     // =====================================================================
+
     if (
       resume.education &&
       resume.education.filter(
@@ -392,7 +396,7 @@ export class PDFGeneratorService {
   // ---------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------
-  
+
   private splitSummaryToBullets(summary: string): string[] {
     if (!summary) return [];
     // Split by newline or bullet char, filter empties

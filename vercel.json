@@ -1,0 +1,7 @@
+{
+  "build": {
+    "env": {
+      "PRISMA_CLI_BINARY_TARGETS": "debian-openssl-3.0.x"
+    }
+  }
+}   

@@ -127,7 +127,7 @@ Required JSON structure (do not modify):
     // console.log(result.response.text())
 
     const responseText = result.response.text();
-    console.log(result);
+
     // Clean and parse JSON
     const cleanText = responseText
       .replace(/```(?:json)?\n?/g, '')
