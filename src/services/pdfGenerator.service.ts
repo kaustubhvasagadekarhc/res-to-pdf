@@ -164,19 +164,17 @@ export class PDFGeneratorService {
     const twoColumnRow = (label: string, value: string | undefined | null) => {
       if (!value || !value.trim()) return;
 
-      doc.font('Helvetica-Bold')
+      doc
+        .font('Helvetica-Bold')
         .fontSize(10)
         .text(label + ': ', {
-          continued: true,  // keep writing on the same line
+          continued: true, // keep writing on the same line
         });
 
-      doc.font('Helvetica')
-        .fontSize(10)
-        .text(value); // continues on same line
+      doc.font('Helvetica').fontSize(10).text(value); // continues on same line
 
       doc.moveDown(0.3);
     };
-
 
     const bulletLines = (lines: string[]) => {
       doc.font('Helvetica').fontSize(10);
@@ -276,7 +274,9 @@ export class PDFGeneratorService {
           if (project.technologies) {
             doc.font('Helvetica-Bold').fontSize(10).text('Technologies:');
             doc.moveDown(0.2);
-            const techStr = Array.isArray(project.technologies) ? project.technologies.join(', ') : project.technologies;
+            const techStr = Array.isArray(project.technologies)
+              ? project.technologies.join(', ')
+              : project.technologies;
             doc.font('Helvetica').fontSize(10).text(techStr, {
               width: contentWidth,
             });
@@ -294,9 +294,6 @@ export class PDFGeneratorService {
       doc.moveDown(0.5);
     }
 
-
-
-    
     // =====================================================================
     // EDUCATION
     // =====================================================================
@@ -342,7 +339,11 @@ export class PDFGeneratorService {
     // =====================================================================
 
     const p = resume.personal;
-    if ((p?.name && p.name.trim()) || (p?.gender && p.gender.trim()) || (p?.marital_status && p.marital_status.trim())) {
+    if (
+      (p?.name && p.name.trim()) ||
+      (p?.gender && p.gender.trim()) ||
+      (p?.marital_status && p.marital_status.trim())
+    ) {
       sectionHeader('Personal Details');
       twoColumnRow('Name', p.name ?? '');
       if (p.gender) twoColumnRow('Gender', p.gender);
@@ -391,6 +392,7 @@ export class PDFGeneratorService {
   // ---------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------
+  
   private splitSummaryToBullets(summary: string): string[] {
     if (!summary) return [];
     // Split by newline or bullet char, filter empties
