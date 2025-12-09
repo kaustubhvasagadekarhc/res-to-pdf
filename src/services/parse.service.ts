@@ -103,6 +103,7 @@ Required JSON structure (do not modify):
   "projects": [{
     "name": "",
     "description": "",
+    "responsibilities": [],
     "technologies": []
   }]
 }`;
