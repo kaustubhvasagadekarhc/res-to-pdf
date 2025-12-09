@@ -1,5 +1,5 @@
 import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
-import prisma from '../config/database.js';
+import prisma from '../config/database';
 
 export class ParseService {
   private genAI: GoogleGenerativeAI;

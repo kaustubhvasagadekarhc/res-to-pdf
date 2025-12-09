@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import path from 'path';
-import { pdfGeneratorService } from '../services/pdfGenerator.service.js';
+import { pdfGeneratorService } from '../services/pdfGenerator.service';
 
 const router = Router();
 

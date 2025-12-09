@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { upload } from "../middleware/multer.js";
-import { fileUploadService } from "../services/fileUpload.service.js";
-import { parseService } from "../services/parse.service.js";
+import { upload } from "../middleware/multer";
+import { fileUploadService } from "../services/fileUpload.service";
+import { parseService } from "../services/parse.service";
 
 const router = Router();
 
