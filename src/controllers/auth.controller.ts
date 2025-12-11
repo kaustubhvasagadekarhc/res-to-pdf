@@ -5,6 +5,7 @@ import { loginUser } from '../services/auth/login.service';
 import { verifyUserOtp } from '../services/auth/verifyOtp.service';
 import { resendUserOtp } from '../services/auth/resendOtp.service';
 import { generateToken } from '../services/auth/token.service';
+import { getCurrentUser } from '../services/auth/me.service';
 
 export const getToken = (req: Request, res: Response) => {
   try {
@@ -58,7 +59,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
-    const result = await loginUser(email, password);
+    const result = await loginUser({ email, password });
 
     res.cookie("auth-token", result.token, {
       httpOnly: true,
@@ -66,6 +67,7 @@ export const login = async (req: Request, res: Response) => {
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
 
     res.status(200).json({
       status: "success",
@@ -90,6 +92,25 @@ export const resendOtp = async (req: Request, res: Response) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'An error occurred';
     res.status(400).json({ status: "error", message });
+  }
+};
+
+export const me = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies["auth-token"];
+    if (!token) {
+      res.status(401).json({ status: "error", message: "Not authenticated" });
+      return;
+    }
+    const user = await getCurrentUser(token);
+    
+    res.status(200).json({
+      status: "success",
+      data: user,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Invalid token';
+    res.status(401).json({ status: "error", message });
   }
 };
 
