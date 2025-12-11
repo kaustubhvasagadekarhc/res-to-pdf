@@ -7,6 +7,8 @@ import { authenticateToken } from "./middleware/auth.middleware";
 
 const app = express();
 
+// app.use(cors({ origin: "*" }));
+
 app.use(cors());
 app.use(express.json());
 
