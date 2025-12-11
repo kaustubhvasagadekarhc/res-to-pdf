@@ -427,6 +427,10 @@
                                 <textarea class="proj-description">${proj.description || ''}</textarea>
                             </div>
                             <div class="form-group">
+                                <label>Responsibilities (one per line)</label>
+                                <textarea class="proj-responsibilities">${Array.isArray(proj.responsibilities) ? proj.responsibilities.join('\n') : ''}</textarea>
+                            </div>
+                            <div class="form-group">
                                 <label>Technologies</label>
                                 <input type="text" class="proj-technologies" value="${Array.isArray(proj.technologies) ? proj.technologies.join(', ') : ''}">
                             </div>
@@ -535,6 +539,11 @@
             resumeData.projects.push({
               name: item.querySelector('.proj-name').value,
               description: item.querySelector('.proj-description').value,
+              responsibilities: item
+                .querySelector('.proj-responsibilities')
+                .value.split('\n')
+                .map((r) => r.trim())
+                .filter((r) => r),
               technologies: item
                 .querySelector('.proj-technologies')
                 .value.split(',')

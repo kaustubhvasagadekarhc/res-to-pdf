@@ -2,14 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database';
 
-interface AuthRequest extends Request {
-    user?: {
-        id: string;
-        email: string;
-    };
-}
 
-export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies['auth-token'] || req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
@@ -33,7 +28,11 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
             return;
         }
 
-        req.user = decoded;
+        req.user = {
+            id: decoded.id,
+            email: decoded.email,
+            name: user.name 
+        };
         next();
     } catch (error) {
         res.status(401).json({ status: 'error', message: 'Invalid token' });

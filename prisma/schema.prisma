@@ -18,7 +18,6 @@ model Role {
   users User[]
 }
 
-
 model User {
   id           String      @id @default(uuid())
   name         String?
@@ -55,9 +54,9 @@ model Resume {
   fileName       String
   mimeType       String
 
-  appwriteFileId String?   // ✔ Add this field
-  virtualPath    String?   // ✔ Add this field
-  rawText        String?   // ✔ Optional but recommended
+  appwriteFileId String?
+  virtualPath    String?
+  rawText        String?
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -76,7 +75,32 @@ model ResumeSection {
   section   String
   content   String
 
+  version   Int      @default(1)
+  
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Version history relation
+  history   ResumeSectionVersion[]
 
   @@index([resumeId])
+}
+
+model ResumeSectionVersion {
+  id               String   @id @default(uuid())
+  
+  resumeSectionId  String
+  resumeSection    ResumeSection @relation(fields: [resumeSectionId], references: [id], onDelete: Cascade)
+  
+  version          Int
+  section          String   // Store section name for historical reference
+  content          String
+  changeNote       String?  // Optional: description of what changed
+  
+  createdAt        DateTime @default(now())
+  createdBy        String?  // Optional: userId who made the change
+
+  @@index([resumeSectionId])
+  @@index([createdAt])
+  @@unique([resumeSectionId, version])
 }
