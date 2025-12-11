@@ -41,11 +41,7 @@ SPECIAL INSTRUCTIONS FOR KEY FIELDS:
 - Make it compelling and authentic, reflecting the candidate's voice and impact.
 
 **work_experience[] and projects[] (nested and standalone):**
-- For each responsibility and project description, be specific and impact-driven.
-- Responsibilities: Use action verbs (designed, architected, implemented, optimized, led, etc.) and quantify results where possible.
-- Each responsibility should be a complete thought (15+ words recommended for clarity).
-- Include technologies, frameworks, and tools used in project context.
-- If a role lists multiple projects, extract each as a separate object with clear name, description, and technologies.
+- Duration fromat must be 1 year 3 months based on period_from and period_to.
 - De-duplicate projects that appear in both work_experience and the standalone projects section.
 
 **skills field:**

@@ -84,12 +84,12 @@ If you need to use the API manually (e.g., with curl or Postman):
 
 1. **Get a token:**
 ```bash
-curl https://res-to-pdf.vercel.app/auth/token
+curl https://res-to-pdf.vercel-app.app/auth/token
 ```
 
 2. **Use the token in requests:**
 ```bash
-curl -X POST https://res-to-pdf.vercel.app/upload \
+curl -X POST https://res-to-pdf-app.vercel.app/upload \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -F "file=@resume.pdf"
 ```

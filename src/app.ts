@@ -3,7 +3,7 @@ import cors from "cors";
 import uploadRoutes from "./routes/upload.routes";
 import pdfRoutes from "./routes/pdf.routes";
 import authRoutes from "./routes/auth.routes";
-import { authenticateToken } from "./middleware/auth.middleware";
+import { authenticate } from "./middleware/auth.middleware";
 
 const app = express();
 
@@ -13,8 +13,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/auth", authRoutes);
-app.use("/upload", authenticateToken, uploadRoutes);
-app.use("/generate/pdf", authenticateToken, pdfRoutes);
+app.use("/upload", authenticate, uploadRoutes);
+app.use("/generate/pdf", authenticate, pdfRoutes);
 
 app.get("/", (req, res) => {
   res.json({ status: "ok" });

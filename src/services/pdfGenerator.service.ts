@@ -25,8 +25,8 @@ export interface ResumeData {
 export interface WorkExperience {
   company?: string;
   position?: string;
-  period_from?: string; // "YYYY-MM"
-  period_to?: string; // "YYYY-MM" or "Present"
+  period_from?: string; 
+  period_to?: string; 
   duration?: string;
   projects?: Project[];
 }
