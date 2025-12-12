@@ -5,7 +5,7 @@ export const registerSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
     name: z.string().min(2, 'Name must be at least 2 characters').optional(),
     userType: z.enum(['user', 'admin'], {
-        message: 'User type must be either CANDIDATE or CLIENT',
+        message: 'User type must be either user or Admin',
     }),
     jobTitle: z.string().optional(),
 });
