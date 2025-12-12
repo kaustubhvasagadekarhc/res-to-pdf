@@ -5,7 +5,7 @@ import {
   register,
   resendOtp,
   verifyOtp,
-  // logout,
+  logout,
   me,
 } from '../controllers/auth.controller';
 
@@ -117,19 +117,19 @@ router.post('/verify-otp', verifyOtp);
  */
 router.post('/resend-otp', resendOtp);
 
-// /**
-//  * @swagger
-//  * /auth/logout:
-//  *   post:
-//  *     summary: User logout
-//  *     tags: [Auth]
-//  *     security:
-//  *       - cookieAuth: []
-//  *     responses:
-//  *       200:
-//  *         description: Logout successful
-//  */
-// router.post('/logout', logout);
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: User logout
+ *     tags: [Auth]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ */
+router.post('/logout', logout);
 
 /**
  * @swagger

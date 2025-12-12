@@ -10,7 +10,13 @@ import { specs } from './config/swagger';
 
 const app = express();
 
-app.use(cors());
+// CORS configuration for cookie-based authentication
+app.use(cors({
+  origin: '*',
+  credentials: true, // Allow cookies to be sent
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 app.use(express.json());
 app.use(cookieParser());
