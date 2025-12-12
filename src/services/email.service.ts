@@ -51,8 +51,8 @@ export const sendInvitationEmail = async (email: string, senderName: string) => 
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Invitation to Join Hirelyze',
-        text: `${senderName} has invited you to connect on Hirelyze. Register now to accept the request.`,
-        html: `<p><strong>${senderName}</strong> has invited you to connect on Hirelyze.</p><p><a href="${frontendUrl}/auth?view=register">Register now</a> to accept the request.</p>`,
+        text: `${senderName} has invited you to connect . Register now to accept the request.`,
+        html: `<p><strong>${senderName}</strong> has invited you to connect.</p><p><a href="${frontendUrl}/auth?view=register">Register now</a> to accept the request.</p>`,
     };
 
     try {
