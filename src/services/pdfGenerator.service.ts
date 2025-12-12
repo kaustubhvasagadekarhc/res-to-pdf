@@ -19,6 +19,7 @@ export interface ResumeData {
     technical?: string[];
   };
   work_experience?: WorkExperience[];
+  projects?: Project[];
   education?: Education[];
   projects?: Project[];
 }
@@ -308,34 +309,61 @@ export class PDFGeneratorService {
     }
 
     // =====================================================================
-    // PROJECTS (Standalone)
+    // PROJECTS
     // =====================================================================
-    if (resume.projects && resume.projects.length > 0) {
+    const hasProjects =
+      Array.isArray(resume.projects) &&
+      resume.projects.some(
+        (p) =>
+          this.hasValue(p.name) ||
+          this.hasValue(p.description) ||
+          (Array.isArray(p.responsibilities) && p.responsibilities.some((r) => this.hasValue(r))) ||
+          (Array.isArray(p.technologies)
+            ? p.technologies.some((t) => this.hasValue(t))
+            : this.hasValue(typeof p.technologies === 'string' ? p.technologies : undefined))
+      );
+
+    if (hasProjects) {
       sectionHeader('Projects');
-      resume.projects.forEach((project) => {
-        if (project.name) {
-          doc.font('Helvetica-Bold').fontSize(12).text(project.name, { width: contentWidth });
-          doc.moveDown(0.2);
+
+      (resume.projects ?? []).forEach((project, idx) => {
+        if (this.hasValue(project.name)) {
+          doc.font('Helvetica-Bold').fontSize(12).text(`Project: ${project.name}`, {
+            width: contentWidth,
+          });
+          doc.moveDown(0.3);
         }
 
-        if (project.description) {
-          doc.font('Helvetica').fontSize(10).text(project.description, { width: contentWidth });
+        if (this.hasValue(project.description)) {
+          doc.font('Helvetica-Bold').fontSize(10).text('Description:');
           doc.moveDown(0.2);
+          doc.font('Helvetica').fontSize(10).text(project.description ?? '', { width: contentWidth });
+          doc.moveDown(0.4);
+        }
+
+        if (project.responsibilities && project.responsibilities.length) {
+          doc.font('Helvetica-Bold').fontSize(10).text('Responsibilities:');
+          doc.moveDown(0.3);
+          bulletLines(project.responsibilities);
+          doc.moveDown(0.3);
         }
 
         if (project.technologies) {
-          const t = Array.isArray(project.technologies)
-            ? project.technologies.join(', ')
+          doc.font('Helvetica-Bold').fontSize(10).text('Technologies:');
+          doc.moveDown(0.2);
+          const techStr = Array.isArray(project.technologies)
+            ? project.technologies.filter((t) => this.hasValue(t)).join(', ')
             : project.technologies;
-
-          if (t && t.trim()) {
-            doc.font('Helvetica-Bold').fontSize(10).text('Technologies: ', { continued: true });
-            doc.font('Helvetica').fontSize(10).text(t);
-            doc.moveDown(0.2);
-          }
+          doc.font('Helvetica').fontSize(10).text(techStr ?? '', { width: contentWidth });
+          doc.moveDown(0.4);
         }
-        doc.moveDown(0.4);
+
+        if (idx < (resume.projects?.length ?? 0) - 1) {
+          greySeparator();
+          doc.moveDown(0.4);
+        }
       });
+
       doc.moveDown(0.5);
     }
 
