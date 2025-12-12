@@ -106,7 +106,9 @@ export const me = async (req: Request, res: Response) => {
     
     res.status(200).json({
       status: "success",
-      data: user,
+      data: {
+        user: user,
+      },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Invalid token';
