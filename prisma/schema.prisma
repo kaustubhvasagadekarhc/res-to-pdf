@@ -7,12 +7,100 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserType {
+  user
+  admin
+}
+
+model Role {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  users User[]
+}
+
+model User {
+  id           String      @id @default(uuid())
+  name         String?
+  email        String      @unique
+  password     String      @map("password_hash")
+  jobTitle     String?
+  isVerified   Boolean     @default(false)
+
+  // OTP fields for email verification
+  otp          String?
+  otpExpiry    DateTime?   @map("otp_expiry")
+
+  userType     UserType    // user or admin 
+
+  roleId       Int?
+  role         Role?       @relation(fields: [roleId], references: [id])
+
+  // relations
+  resumes      Resume[] 
+
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@index([userType])
+}
+
+model Resume {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fileUrl        String
+  fileName       String
+  mimeType       String
+
+  appwriteFileId String?
+  virtualPath    String?
+  rawText        String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sections       ResumeSection[]
+
+  @@index([userId])
+}
 
 model ResumeSection {
-  id        Int      @id @default(autoincrement())
-  resumeId String
-  section  String
-  content  String
+  id        String   @id @default(uuid())
+
+  resumeId  String
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  section   String
+  content   String
+
+  version   Int      @default(1)
   
-  @@map("resume_sections")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Version history relation
+  history   ResumeSectionVersion[]
+
+  @@index([resumeId])
+}
+
+model ResumeSectionVersion {
+  id               String   @id @default(uuid())
+  
+  resumeSectionId  String
+  resumeSection    ResumeSection @relation(fields: [resumeSectionId], references: [id], onDelete: Cascade)
+  
+  version          Int
+  section          String   // Store section name for historical reference
+  content          String
+  changeNote       String?  // Optional: description of what changed
+  
+  createdAt        DateTime @default(now())
+  createdBy        String?  // Optional: userId who made the change
+
+  @@index([resumeSectionId])
+  @@index([createdAt])
+  @@unique([resumeSectionId, version])
 }

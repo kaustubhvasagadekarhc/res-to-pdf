@@ -1,20 +1,40 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { jwtConfig } from '../config/auth';
+import prisma from '../config/database';
 
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+
+
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.cookies['auth-token'] || req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
-        return res.status(401).json({ error: 'Access token required' });
+        res.status(401).json({ status: 'error', message: 'Authentication required' });
+        return;
     }
 
-    jwt.verify(token, jwtConfig.secret, (err: any, user: any) => {
-        if (err) {
-            return res.status(403).json({ error: 'Invalid or expired token' });
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        res.status(500).json({ status: 'error', message: 'Server configuration error: JWT secret not set' });
+        return;
+    }
+
+    try {
+        const decoded = jwt.verify(token, secret) as { id: string; email: string };
+
+        // Optional: Check if user still exists in DB
+        const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+        if (!user) {
+            res.status(401).json({ status: 'error', message: 'User not found' });
+            return;
         }
-        (req as any).user = user;
+
+        req.user = {
+            id: decoded.id,
+            email: decoded.email,
+            name: user.name 
+        };
         next();
-    });
+    } catch (error) {
+        res.status(401).json({ status: 'error', message: 'Invalid token' });
+    }
 };
