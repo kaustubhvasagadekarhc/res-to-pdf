@@ -5,6 +5,7 @@ import uploadRoutes from './routes/upload.routes';
 import pdfRoutes from './routes/pdf.routes';
 import authRoutes from './routes/auth.routes';
 import { authenticate } from './middleware/auth.middleware';
+import { setupSwagger } from './utils/swagger.setup';
 
 const app = express();
 
@@ -13,6 +14,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
+
+// Setup Swagger documentation
+setupSwagger(app);
 
 app.use('/auth', authRoutes);
 app.use('/upload', authenticate, uploadRoutes);
