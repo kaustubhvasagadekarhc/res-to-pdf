@@ -21,7 +21,7 @@ export interface ResumeData {
   work_experience?: WorkExperience[];
   projects?: Project[];
   education?: Education[];
-  projects?: Project[];
+
 }
 
 export interface WorkExperience {
