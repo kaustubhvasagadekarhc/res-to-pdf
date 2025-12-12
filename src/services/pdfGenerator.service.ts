@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import fs from 'fs';
 import PDFDocument from 'pdfkit';
+import path from 'path';
 
 export interface ResumeData {
   personal?: {
@@ -18,15 +19,15 @@ export interface ResumeData {
     technical?: string[];
   };
   work_experience?: WorkExperience[];
-  projects?: Project[];
   education?: Education[];
+  projects?: Project[];
 }
 
 export interface WorkExperience {
   company?: string;
   position?: string;
-  period_from?: string; 
-  period_to?: string; 
+  period_from?: string;
+  period_to?: string;
   duration?: string;
   projects?: Project[];
 }
@@ -53,12 +54,12 @@ export class PDFGeneratorService {
     return !!val && val.trim() !== '';
   }
 
-  // Formats an array of fields and returns only valid ones
-  private validFieldList(fields: { label: string; value: string | null | undefined }[]) {
-    return fields.filter((f) => this.hasValue(f.value));
-  }
+
 
   generatePDF(resume: ResumeData, res: Response, logoPath?: string) {
+    const defaultLogoPath = path.join(__dirname, '../assets/logo.png');
+    const finalLogoPath = logoPath || defaultLogoPath;
+
     const doc = new PDFDocument({
       size: 'A4',
       margins: { top: 40, left: 40, right: 40, bottom: 40 },
@@ -78,11 +79,11 @@ export class PDFGeneratorService {
     });
 
     // company logo top right (like hc_logo.png in Java code)
-    if (logoPath && fs.existsSync(logoPath)) {
+    if (finalLogoPath && fs.existsSync(finalLogoPath)) {
       const imgWidth = 120;
       const x = doc.page.width - doc.page.margins.right - imgWidth;
       const y = doc.page.margins.top - 10;
-      doc.image(logoPath, x, y, { width: imgWidth });
+      doc.image(finalLogoPath, x, y, { width: imgWidth });
     }
 
     doc.moveDown(0.3);
@@ -218,11 +219,19 @@ export class PDFGeneratorService {
     // =====================================================================
     // SKILL SET
     // =====================================================================
-    const s = resume.skills?.technical;
+    // =====================================================================
+    // SKILL SET
+    // =====================================================================
+    let technicalSkills: string[] = [];
+    if (Array.isArray(resume.skills)) {
+      technicalSkills = resume.skills;
+    } else if (resume.skills?.technical) {
+      technicalSkills = resume.skills.technical;
+    }
 
-    if (Array.isArray(s) && s.filter((x) => this.hasValue(x)).length > 0) {
+    if (technicalSkills.length > 0 && technicalSkills.filter((x) => this.hasValue(x)).length > 0) {
       sectionHeader('Skill Set');
-      doc.text(s.filter((x) => this.hasValue(x)).join(', '), { width: contentWidth });
+      doc.text(technicalSkills.filter((x) => this.hasValue(x)).join(', '), { width: contentWidth });
       doc.moveDown(0.3);
     }
 
@@ -299,61 +308,34 @@ export class PDFGeneratorService {
     }
 
     // =====================================================================
-    // PROJECTS
+    // PROJECTS (Standalone)
     // =====================================================================
-    const hasProjects =
-      Array.isArray(resume.projects) &&
-      resume.projects.some(
-        (p) =>
-          this.hasValue(p.name) ||
-          this.hasValue(p.description) ||
-          (Array.isArray(p.responsibilities) && p.responsibilities.some((r) => this.hasValue(r))) ||
-          (Array.isArray(p.technologies)
-            ? p.technologies.some((t) => this.hasValue(t))
-            : this.hasValue(typeof p.technologies === 'string' ? p.technologies : undefined))
-      );
-
-    if (hasProjects) {
+    if (resume.projects && resume.projects.length > 0) {
       sectionHeader('Projects');
-
-      (resume.projects ?? []).forEach((project, idx) => {
-        if (this.hasValue(project.name)) {
-          doc.font('Helvetica-Bold').fontSize(12).text(`Project: ${project.name}`, {
-            width: contentWidth,
-          });
-          doc.moveDown(0.3);
-        }
-
-        if (this.hasValue(project.description)) {
-          doc.font('Helvetica-Bold').fontSize(10).text('Description:');
+      resume.projects.forEach((project) => {
+        if (project.name) {
+          doc.font('Helvetica-Bold').fontSize(12).text(project.name, { width: contentWidth });
           doc.moveDown(0.2);
-          doc.font('Helvetica').fontSize(10).text(project.description ?? '', { width: contentWidth });
-          doc.moveDown(0.4);
         }
 
-        if (project.responsibilities && project.responsibilities.length) {
-          doc.font('Helvetica-Bold').fontSize(10).text('Responsibilities:');
-          doc.moveDown(0.3);
-          bulletLines(project.responsibilities);
-          doc.moveDown(0.3);
+        if (project.description) {
+          doc.font('Helvetica').fontSize(10).text(project.description, { width: contentWidth });
+          doc.moveDown(0.2);
         }
 
         if (project.technologies) {
-          doc.font('Helvetica-Bold').fontSize(10).text('Technologies:');
-          doc.moveDown(0.2);
-          const techStr = Array.isArray(project.technologies)
-            ? project.technologies.filter((t) => this.hasValue(t)).join(', ')
+          const t = Array.isArray(project.technologies)
+            ? project.technologies.join(', ')
             : project.technologies;
-          doc.font('Helvetica').fontSize(10).text(techStr ?? '', { width: contentWidth });
-          doc.moveDown(0.4);
-        }
 
-        if (idx < (resume.projects?.length ?? 0) - 1) {
-          greySeparator();
-          doc.moveDown(0.4);
+          if (t && t.trim()) {
+            doc.font('Helvetica-Bold').fontSize(10).text('Technologies: ', { continued: true });
+            doc.font('Helvetica').fontSize(10).text(t);
+            doc.moveDown(0.2);
+          }
         }
+        doc.moveDown(0.4);
       });
-
       doc.moveDown(0.5);
     }
 
@@ -496,10 +478,23 @@ export class PDFGeneratorService {
 
   private parseYm(ym?: string): Date | null {
     if (!ym) return null;
-    if (ym === 'Present') return new Date();
-    const [year, month] = ym.split('-').map((n) => parseInt(n, 10));
-    if (!year || !month) return null;
-    return new Date(year, month - 1, 1);
+    if (ym.toLowerCase() === 'present') return new Date();
+
+    // Try YYYY-MM
+    const parts = ym.split('-').map((n) => parseInt(n, 10));
+    if (parts.length >= 2) {
+      const [year, month] = parts;
+      if (!isNaN(year) && !isNaN(month)) {
+        return new Date(year, month - 1, 1);
+      }
+    }
+
+    // Try YYYY
+    if (parts.length === 1 && !isNaN(parts[0])) {
+      return new Date(parts[0], 0, 1);
+    }
+
+    return null;
   }
 
   private buildExperienceTitle(exp: WorkExperience): string {
