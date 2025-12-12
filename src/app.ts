@@ -11,11 +11,12 @@ import { specs } from './config/swagger';
 const app = express();
 
 app.use(cors());
+
 app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
-
+// api call from swagger to get the json spec
 app.get("/api/docs.json", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "application/json");
   res.send(specs);
