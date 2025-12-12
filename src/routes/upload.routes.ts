@@ -1,33 +1,51 @@
 import { Router } from "express";
 import { upload } from "../middleware/multer";
-import { fileUploadService } from "../services/fileUpload.service";
-import { parseService } from "../services/parse.service";
+import { resumeService } from "../services/resume.service";
 
 const router = Router();
 
 /**
- * POST /upload
- * 1. Upload file to Appwrite
- * 2. Get public URL
- * 3. Parse resume using Gemini
+ * @swagger
+ * /upload:
+ *   post:
+ *     summary: Upload and parse a resume PDF
+ *     tags: [Resume]
+ *     consumes:
+ *       - multipart/form-data
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Resume parsed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 uploaded:
+ *                   type: object
+ *                 parsed:
+ *                   type: object
+ *       400:
+ *         description: File is missing
+ *       500:
+ *         description: Internal server error
  */
 router.post("/", upload.single("file"), async (req, res) => {
   try {
-    
     if (!req.file) return res.status(400).json({ error: "file is required" });
 
-    // 1) Upload File
-    const uploaded = await fileUploadService.upload(req.file);
+    const result = await resumeService.processResumeUpload(req.file);
 
-    // 2) Parse Resume from file URL
-    const parsed = await parseService.parseResume(uploaded.fileUrl,
-       uploaded.fileId
-      );
-
-    return res.json({
-      uploaded,
-      parsed,
-    });
+    return res.json(result);
 
   } catch (err: unknown) {
     console.error("Upload+Parse Error:", err);
