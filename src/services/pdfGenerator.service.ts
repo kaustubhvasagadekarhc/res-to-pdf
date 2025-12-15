@@ -2,6 +2,7 @@ import { Response } from 'express';
 import fs from 'fs';
 import PDFDocument from 'pdfkit';
 import path from 'path';
+import prisma from '../config/database';
 
 export interface ResumeData {
   personal?: {
@@ -56,7 +57,11 @@ export class PDFGeneratorService {
 
 
 
-  generatePDF(resume: ResumeData, res: Response, logoPath?: string) {
+  async generatePDF(resume: ResumeData, res: Response, userId?: string, logoPath?: string) {
+    // Store resume version before generating PDF
+    if (userId) {
+      await this.storeResumeVersion(resume, userId);
+    }
     const defaultLogoPath = path.join(__dirname, '../assets/logo.png');
     const finalLogoPath = logoPath || defaultLogoPath;
 
@@ -433,6 +438,48 @@ export class PDFGeneratorService {
     });
 
     doc.end();
+  }
+
+  private async storeResumeVersion(resumeData: ResumeData, userId: string) {
+    try {
+      // Find or create resume record
+      let resume = await prisma.resume.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (!resume) {
+        resume = await prisma.resume.create({
+          data: {
+            userId,
+            fileUrl: '',
+            fileName: 'generated-resume.pdf',
+            mimeType: 'application/pdf'
+          }
+        });
+      }
+
+      // Get current max version for this resume
+      const maxVersion = await prisma.resumeSection.findFirst({
+        where: { resumeId: resume.id },
+        orderBy: { version: 'desc' },
+        select: { version: true }
+      });
+
+      const nextVersion = (maxVersion?.version || 0) + 1;
+
+      // Store each section with new version
+      const sections = Object.entries(resumeData).map(([key, value]) => ({
+        resumeId: resume.id,
+        section: key,
+        content: JSON.stringify(value),
+        version: nextVersion
+      }));
+
+      await prisma.resumeSection.createMany({ data: sections });
+    } catch (error) {
+      console.error('Error storing resume version:', error);
+    }
   }
 
   // ---------------------------------------------------------------------

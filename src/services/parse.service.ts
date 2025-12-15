@@ -137,13 +137,26 @@ Required JSON structure (do not modify):
     }
 
     // Save to database
-    const entries = Object.entries(parsed).map(([key, val]) => ({
-      resumeId: resId || 'temp-id',
-      section: key,
-      content: JSON.stringify(val),
-    }));
+    if (resId) {
+      console.log('Attempting to create sections for resumeId:', resId);
+      
+      // Verify resume exists
+      const resumeExists = await prisma.resume.findUnique({ where: { id: resId } });
+      console.log('Resume exists:', !!resumeExists);
+      
+      if (!resumeExists) {
+        throw new Error(`Resume with ID ${resId} not found`);
+      }
 
-    await prisma.resumeSection.createMany({ data: entries });
+      const entries = Object.entries(parsed).map(([key, val]) => ({
+        resumeId: resId,
+        section: key,
+        content: JSON.stringify(val),
+      }));
+
+      console.log('Creating sections:', entries.length);
+      await prisma.resumeSection.createMany({ data: entries });
+    }
 
     return parsed;
   }

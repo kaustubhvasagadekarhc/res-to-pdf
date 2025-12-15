@@ -43,7 +43,10 @@ router.post("/", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "file is required" });
 
-    const result = await resumeService.processResumeUpload(req.file);
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: "User not authenticated" });
+
+    const result = await resumeService.processResumeUpload(req.file, userId);
 
     return res.json(result);
 

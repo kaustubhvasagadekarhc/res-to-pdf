@@ -40,15 +40,20 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const resumeData = req.body;
+    const userId = req.user?.id;
 
     if (!resumeData) {
       return res.status(400).json({ error: 'Resume data is required' });
     }
 
-    pdfGeneratorService.generatePDF(resumeData, res);
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    await pdfGeneratorService.generatePDF(resumeData, res, userId);
   } catch (err: unknown) {
     console.error('PDF Generation Error:', err);
     const message = err instanceof Error ? err.message : 'Unknown error';

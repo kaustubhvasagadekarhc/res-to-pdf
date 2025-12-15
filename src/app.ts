@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import uploadRoutes from './routes/upload.routes';
 import pdfRoutes from './routes/pdf.routes';
 import authRoutes from './routes/auth.routes';
+import resumeRoutes from './routes/resume.routes';
 import { authenticate } from './middleware/auth.middleware';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger';
@@ -31,6 +32,7 @@ app.get("/api/docs.json", (req: Request, res: Response) => {
 app.use('/auth', authRoutes);
 app.use('/upload', authenticate, uploadRoutes);
 app.use('/generate/pdf', authenticate, pdfRoutes);
+app.use('/resume', authenticate, resumeRoutes);
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok' });
