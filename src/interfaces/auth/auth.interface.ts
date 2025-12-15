@@ -7,5 +7,5 @@ export interface LoginResponse {
     id: string;
     email: string;
     name: string| null;
-    userType: string;
+    userType: 'USER' | 'ADMIN';
 }

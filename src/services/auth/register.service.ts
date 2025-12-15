@@ -8,7 +8,7 @@ export const registerUser = async (userData: {
   email: string;
   password: string;
   name?: string;
-  userType: 'user' | 'admin';
+  userType: 'USER' | 'ADMIN';
   jobTitle?: string;
 }) => {
   const { email, password, name, userType, jobTitle } = userData;

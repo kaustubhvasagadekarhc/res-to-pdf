@@ -8,8 +8,8 @@ datasource db {
 }
 
 enum UserType {
-  user
-  admin
+  USER
+  ADMIN
 }
 
 model Role {
@@ -30,7 +30,7 @@ model User {
   otp          String?
   otpExpiry    DateTime?   @map("otp_expiry")
 
-  userType     UserType    // user or admin 
+  userType     UserType    // USER or ADMIN 
 
   roleId       Int?
   role         Role?       @relation(fields: [roleId], references: [id])

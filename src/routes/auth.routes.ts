@@ -44,7 +44,7 @@ router.get('/token', getToken);
  *                 type: string
  *               userType:
  *                 type: string
- *                 enum: [user, admin]
+ *                 enum: [USER, ADMIN]
  *               jobTitle:
  *                 type: string
  *     responses:

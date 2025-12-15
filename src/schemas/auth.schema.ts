@@ -4,8 +4,8 @@ export const registerSchema = z.object({
     email: z.string().email('Invalid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     name: z.string().min(2, 'Name must be at least 2 characters').optional(),
-    userType: z.enum(['user', 'admin'], {
-        message: 'User type must be either CANDIDATE or CLIENT',
+    userType: z.enum(['USER', 'ADMIN'], {
+        message: 'User type must be either USER or ADMIN',
     }),
     jobTitle: z.string().optional(),
 });
