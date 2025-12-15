@@ -62,9 +62,23 @@ model Resume {
   updatedAt      DateTime @updatedAt
 
   version       ResumeVersions[]
-  
+  generatedResumes GeneratedResume[]
 
   @@index([userId])
+}
+
+model GeneratedResume {
+  id        String   @id @default(uuid())
+  resumeId  String
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  
+  fileName  String
+  fileUrl   String
+  fileSize  Int?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([resumeId])
 }
 
 model ResumeVersions {
