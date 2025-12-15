@@ -5,7 +5,7 @@ export const getUserResumeSections = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     
-    const sections = await prisma.resumeSection.findMany({
+    const sections = await prisma.resumeVersions.findMany({
       where: {
         resume: {
           userId: userId

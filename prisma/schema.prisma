@@ -61,14 +61,15 @@ model Resume {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  sections       ResumeSection[]
+  version       ResumeVersions[]
+  
 
   @@index([userId])
 }
 
-model ResumeSection {
+model ResumeVersions {
   id        String   @id @default(uuid())
-
+  jobTitle  String?  
   resumeId  String
   resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 
@@ -80,27 +81,5 @@ model ResumeSection {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Version history relation
-  history   ResumeSectionVersion[]
-
   @@index([resumeId])
-}
-
-model ResumeSectionVersion {
-  id               String   @id @default(uuid())
-  
-  resumeSectionId  String
-  resumeSection    ResumeSection @relation(fields: [resumeSectionId], references: [id], onDelete: Cascade)
-  
-  version          Int
-  section          String   // Store section name for historical reference
-  content          String
-  changeNote       String?  // Optional: description of what changed
-  
-  createdAt        DateTime @default(now())
-  createdBy        String?  // Optional: userId who made the change
-
-  @@index([resumeSectionId])
-  @@index([createdAt])
-  @@unique([resumeSectionId, version])
 }

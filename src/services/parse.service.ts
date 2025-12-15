@@ -148,14 +148,14 @@ Required JSON structure (do not modify):
         throw new Error(`Resume with ID ${resId} not found`);
       }
 
-      const entries = Object.entries(parsed).map(([key, val]) => ({
-        resumeId: resId,
-        section: key,
-        content: JSON.stringify(val),
-      }));
-
-      console.log('Creating sections:', entries.length);
-      await prisma.resumeSection.createMany({ data: entries });
+      console.log('Creating single resume section entry');
+      await prisma.resumeVersions.create({
+        data: {
+          resumeId: resId,
+          section: 'resumeJson',
+          content: JSON.stringify(parsed)
+        }
+      });
     }
 
     return parsed;

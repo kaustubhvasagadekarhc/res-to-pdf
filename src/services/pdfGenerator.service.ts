@@ -460,7 +460,7 @@ export class PDFGeneratorService {
       }
 
       // Get current max version for this resume
-      const maxVersion = await prisma.resumeSection.findFirst({
+      const maxVersion = await prisma.resumeVersions.findFirst({
         where: { resumeId: resume.id },
         orderBy: { version: 'desc' },
         select: { version: true }
@@ -468,15 +468,26 @@ export class PDFGeneratorService {
 
       const nextVersion = (maxVersion?.version || 0) + 1;
 
-      // Store each section with new version
-      const sections = Object.entries(resumeData).map(([key, value]) => ({
-        resumeId: resume.id,
-        section: key,
-        content: JSON.stringify(value),
-        version: nextVersion
-      }));
+      // Store complete JSON as single row in ResumeSection
+      await prisma.resumeVersions.create({
+        data: {
+          resumeId: resume.id,
+          section: "resumeJson",
+          content: JSON.stringify(resumeData),
+          version: nextVersion
+        }
+      });
 
-      await prisma.resumeSection.createMany({ data: sections });
+      // Store complete JSON in ResumeSectionVersion (single row)
+      // await prisma.resumeSectionVersion.create({
+      //   data: {
+      //     resumeVersionId: resume.id,
+      //     version: nextVersion,
+      //     section: "resumeJson",
+      //     content: JSON.stringify(resumeData),
+      //     changeNote: 'PDF generation'
+      //   }
+      // });
     } catch (error) {
       console.error('Error storing resume version:', error);
     }

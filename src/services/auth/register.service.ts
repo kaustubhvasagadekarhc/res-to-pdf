@@ -29,7 +29,6 @@ export const registerUser = async (userData: {
       name,
       userType,
       jobTitle,
-      roleId: 1,
       otp,
       otpExpiry,
       isVerified: false,

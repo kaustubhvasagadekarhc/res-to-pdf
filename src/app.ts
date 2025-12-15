@@ -5,6 +5,7 @@ import uploadRoutes from './routes/upload.routes';
 import pdfRoutes from './routes/pdf.routes';
 import authRoutes from './routes/auth.routes';
 import resumeRoutes from './routes/resume.routes';
+import dashboardRoutes from './routes/dashboard.routes';
 import { authenticate } from './middleware/auth.middleware';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger';
@@ -13,8 +14,8 @@ const app = express();
 
 // CORS configuration for cookie-based authentication
 app.use(cors({
-  origin: '*',
-  credentials: true, // Allow cookies to be sent
+  origin: 'http://localhost:3000',
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -33,6 +34,7 @@ app.use('/auth', authRoutes);
 app.use('/upload', authenticate, uploadRoutes);
 app.use('/generate/pdf', authenticate, pdfRoutes);
 app.use('/resume', authenticate, resumeRoutes);
+app.use('/dashboard', authenticate, dashboardRoutes);
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok' });
