@@ -126,7 +126,7 @@ export class PDFGeneratorService {
       const imgWidth = 120;
       const x = doc.page.width - doc.page.margins.right - imgWidth;
       const y = doc.page.margins.top - 10;
-      doc.image(finalLogoPath, x, y, { width: imgWidth });
+      doc.image(finalLogoPath, x, y, { width: imgWidth });  
     }
 
     doc.moveDown(0.3);

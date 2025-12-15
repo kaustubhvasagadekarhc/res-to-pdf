@@ -6,11 +6,23 @@ const router = Router();
 /**
  * @swagger
  * /dashboard/resumes:
- *   get:
+ *   post:
  *     summary: Get user resumes for dashboard
  *     tags: [Dashboard]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: The ID of the user whose resumes to retrieve
  *     responses:
  *       200:
  *         description: User resumes retrieved successfully
@@ -36,9 +48,13 @@ const router = Router();
  *                       updatedAt:
  *                         type: string
  *                         format: date-time
- *                       latestVersion:
+ *                       version:
  *                         type: integer
+ *       400:
+ *         description: Missing userId in request body
+ *       401:
+ *         description: Authentication required
  */
-router.get('/resumes', getUserResumes);
+router.post('/resumes', getUserResumes);
 
 export default router;

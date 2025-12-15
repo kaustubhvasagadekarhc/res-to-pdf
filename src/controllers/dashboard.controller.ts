@@ -3,12 +3,29 @@ import prisma from '../config/database';
 
 export const getUserResumes = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
-
-    if (!userId) {
+    // Verify that user is authenticated via JWT token
+    if (!req.user || !req.user.id) {
       return res.status(401).json({
         status: 'error',
         message: 'User not authenticated',
+      });
+    }
+
+    // Get userId from request body
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'userId is required in request body',
+      });
+    }
+
+    // Ensure authenticated user can only access their own resumes
+    if (req.user.id !== userId) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Access denied. Cannot access another user\'s resumes.',
       });
     }
 
