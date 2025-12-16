@@ -58,16 +58,10 @@ export class PDFGeneratorService {
   }
 
   async generatePDF(resume: ResumeData, res: Response, userId?: string, logoPath?: string) {
-    let resumeRecord;
-    if (userId) {
-      resumeRecord = await this.storeResumeVersion(resume, userId);
-    }
-
     // Generate PDF to buffer
     const pdfBuffer = await this.generatePDFBuffer(resume, logoPath);
-
     // Upload PDF and store in database if user authenticated
-    if (userId && resumeRecord) {
+    if (userId) {
       const fileName = `resume-${Date.now()}.pdf`;
       const mockFile = {
         buffer: pdfBuffer,
@@ -77,27 +71,29 @@ export class PDFGeneratorService {
       } as Express.Multer.File;
 
       const uploaded = await fileUploadService.upload(mockFile);
+      const resumeRecord = await this.storeResumeVersion(resume, userId, uploaded.fileUrl);
 
-      const generatedResume = await prisma.generatedResume.create({
-        data: {
-          userId,
-          resumeId: resumeRecord.id,
-          fileName: fileName,
+      if (resumeRecord) {
+        const generatedResume = await prisma.generatedResume.create({
+          data: {
+            userId,
+            resumeId: resumeRecord.id,
+            fileName: fileName,
+            fileUrl: uploaded.fileUrl,
+            fileSize: pdfBuffer.length,
+          },
+        });
 
-          fileUrl: uploaded.fileUrl,
-          fileSize: pdfBuffer.length,
-        },
-      });
-
-      return res.json({
-        status: 'success',
-        data: {
-          id: generatedResume.id,
-          fileName: generatedResume.fileName,
-          fileUrl: generatedResume.fileUrl,
-          createdAt: generatedResume.createdAt,
-        },
-      });
+        return res.json({
+          status: 'success',
+          data: {
+            id: generatedResume.id,
+            fileName: generatedResume.fileName,
+            fileUrl: generatedResume.fileUrl,
+            createdAt: generatedResume.createdAt,
+          },
+        });
+      }
     }
 
     // Fallback: stream PDF directly
@@ -486,7 +482,7 @@ export class PDFGeneratorService {
     });
   }
 
-  private async storeResumeVersion(resumeData: ResumeData, userId: string): Promise<Resume | null> {
+  private async storeResumeVersion(resumeData: ResumeData, userId: string, fileUrl: string): Promise<Resume | null> {
     try {
       // Find or create resume record
       let resume = await prisma.resume.findFirst({
@@ -519,7 +515,7 @@ export class PDFGeneratorService {
         data: {
           resumeId: resume.id,
           fileName: 'generated-resume.pdf',
-          fileUrl: resume.fileUrl,
+          fileUrl: fileUrl,
           section: 'resumeJson',
           content: JSON.stringify(resumeData),
           version: nextVersion,
