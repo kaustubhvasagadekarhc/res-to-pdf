@@ -37,7 +37,7 @@ model User {
 
   // relations
   resumes      Resume[] 
-
+  generatedResumes GeneratedResume[]
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
@@ -69,9 +69,12 @@ model Resume {
 
 model GeneratedResume {
   id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   resumeId  String
   resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  
+  version   Int      @default(1)
+
   fileName  String
   fileUrl   String
   fileSize  Int?
@@ -86,6 +89,8 @@ model ResumeVersions {
   jobTitle  String?  
   resumeId  String
   resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  fileName  String
+  fileUrl   String    
 
   section   String
   content   String

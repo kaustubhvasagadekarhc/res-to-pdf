@@ -40,16 +40,20 @@ const router = Router();
  *                     properties:
  *                       id:
  *                         type: string
- *                       fileName:
+ *                       jobTitle:
  *                         type: string
+ *                       section:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       version:
+ *                         type: integer
  *                       createdAt:
  *                         type: string
  *                         format: date-time
  *                       updatedAt:
  *                         type: string
  *                         format: date-time
- *                       version:
- *                         type: integer
  *       400:
  *         description: Missing userId in request body
  *       401:

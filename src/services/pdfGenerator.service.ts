@@ -80,8 +80,10 @@ export class PDFGeneratorService {
 
       const generatedResume = await prisma.generatedResume.create({
         data: {
+          userId,
           resumeId: resumeRecord.id,
           fileName: fileName,
+
           fileUrl: uploaded.fileUrl,
           fileSize: pdfBuffer.length,
         },
@@ -126,7 +128,7 @@ export class PDFGeneratorService {
       const imgWidth = 120;
       const x = doc.page.width - doc.page.margins.right - imgWidth;
       const y = doc.page.margins.top - 10;
-      doc.image(finalLogoPath, x, y, { width: imgWidth });  
+      doc.image(finalLogoPath, x, y, { width: imgWidth });
     }
 
     doc.moveDown(0.3);
@@ -516,6 +518,8 @@ export class PDFGeneratorService {
       await prisma.resumeVersions.create({
         data: {
           resumeId: resume.id,
+          fileName: 'generated-resume.pdf',
+          fileUrl: resume.fileUrl,
           section: 'resumeJson',
           content: JSON.stringify(resumeData),
           version: nextVersion,
@@ -616,7 +620,7 @@ export class PDFGeneratorService {
 
     const durationStr = fromOut && toOut ? `${fromOut} - ${toOut}` : (exp.duration ?? '');
 
-    return `${role} at ${company} (${durationStr})`.trim();
+    return `${role} at ${company}(${durationStr})`.trim();
   }
 }
 
