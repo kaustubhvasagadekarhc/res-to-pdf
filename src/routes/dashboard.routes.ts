@@ -42,6 +42,8 @@ const router = Router();
  *                         type: string
  *                       jobTitle:
  *                         type: string
+ *                       resumeurl:
+ *                         type: string
  *                       section:
  *                         type: string
  *                       content:
