@@ -31,10 +31,30 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         req.user = {
             id: decoded.id,
             email: decoded.email,
-            name: user.name 
+            name: user.name,
+            userType: user.userType,
+            role: user.roleId ? { id: user.roleId } : undefined
         };
         next();
     } catch (error) {
         res.status(401).json({ status: 'error', message: 'Invalid token' });
     }
+};
+
+export const authorize = (roles: string[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user) {
+            res.status(401).json({ status: 'error', message: 'Authentication required' });
+            return;
+        }
+
+        const userType = req.user.userType;
+
+        if (roles.includes(userType || '')) {
+            next();
+            return;
+        }
+
+        res.status(403).json({ status: 'error', message: 'Access denied: Insufficient permissions' });
+    };
 };
