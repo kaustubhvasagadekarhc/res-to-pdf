@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes';
 import resumeRoutes from './routes/resume.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import { authenticate } from './middleware/auth.middleware';
+import adminRoutes from './routes/admin.routes';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger';
 
@@ -14,7 +15,7 @@ const app = express();
 
 // CORS configuration for cookie-based authentication
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: ['http://localhost:3000', "https://res-to-pdf.vercel.app"] ,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -35,6 +36,7 @@ app.use('/upload', authenticate, uploadRoutes);
 app.use('/generate/pdf', authenticate, pdfRoutes);
 app.use('/resume', authenticate, resumeRoutes);
 app.use('/dashboard', authenticate, dashboardRoutes);
+app.use('/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok' });
