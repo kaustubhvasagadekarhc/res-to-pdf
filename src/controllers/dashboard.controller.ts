@@ -12,7 +12,7 @@ export const getUserResumes = async (req: Request, res: Response) => {
       });
     }
 
-    // Find all resume versions belonging to the user
+    // Find all resume versions belonging to the user and include parent resume metadata
     const resumeVersions = await prisma.resumeVersions.findMany({
       where: {
         resume: {
@@ -20,6 +20,15 @@ export const getUserResumes = async (req: Request, res: Response) => {
         },
       },
       orderBy: { createdAt: 'asc' },
+      include: {
+        resume: {
+          select: {
+            id: true,
+            fileName: true,
+            fileUrl: true,
+          },
+        },
+      },
     });
 
     if (resumeVersions.length === 0) {

@@ -43,6 +43,22 @@ class FileUploadService {
       size: file.size,
     };
   }
+
+  /**
+   * Delete a file from Appwrite storage by fileId
+   * @param fileId Appwrite file id
+   */
+  async delete(fileId: string) {
+    try {
+      await storage.deleteFile({
+        bucketId: this.BUCKET_ID,
+        fileId,
+      });
+    } catch (err) {
+      console.error('Appwrite delete error:', err);
+      throw new Error('Appwrite storage delete failed');
+    }
+  }
 }
 
 export const fileUploadService = new FileUploadService();

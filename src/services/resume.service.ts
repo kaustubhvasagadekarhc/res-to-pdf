@@ -43,6 +43,35 @@ export class ResumeService {
             resume
         };
     }
+
+    /**
+     * Delete a resume and its uploaded file (if present)
+     * @param resumeId Resume id to delete
+     */
+    async deleteResume(resumeId: string) {
+        // Verify resume exists
+        const resume = await prisma.resume.findUnique({ where: { id: resumeId } });
+        if (!resume) {
+            throw new Error(`Resume with id ${resumeId} not found`);
+        }
+
+        // Attempt to delete the stored file (best-effort)
+        if (resume.appwriteFileId) {
+            try {
+                await fileUploadService.delete(resume.appwriteFileId);
+            } catch (err) {
+                console.error(`Failed to delete file ${resume.appwriteFileId}:`, err);
+                // Do not block DB deletion; log the error and proceed
+            }
+        }
+
+        try {
+            await prisma.resume.delete({ where: { id: resumeId } });
+        } catch (err) {
+            console.error('Failed to delete resume record:', err);
+            throw new Error('Database deletion failed');
+        }
+    }
 }
 
 export const resumeService = new ResumeService();

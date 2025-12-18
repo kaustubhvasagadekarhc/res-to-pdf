@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUserResumeSections } from '../controllers/resume.controller';
+import { getUserResumeSections, deleteResume } from '../controllers/resume.controller';
 
 const router = Router();
 
@@ -31,5 +31,23 @@ const router = Router();
  *                     type: object
  */
 router.get('/sections/:userId', getUserResumeSections);
+
+/**
+ * @swagger
+ * /resume/{id}:
+ *   delete:
+ *     summary: Delete a resume (owner or admin only)
+ *     tags: [Resume]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Resume deleted successfully
+ */
+router.delete('/:id', deleteResume);
 
 export default router;
