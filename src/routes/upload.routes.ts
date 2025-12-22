@@ -10,6 +10,8 @@ const router = Router();
  *   post:
  *     summary: Upload and parse a resume PDF
  *     tags: [Resume]
+ *     security:
+ *       - bearerAuth: []
  *     consumes:
  *       - multipart/form-data
  *     requestBody:

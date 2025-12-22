@@ -9,6 +9,8 @@ const router = Router();
  *   get:
  *     summary: Get user resume sections
  *     tags: [Resume]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId

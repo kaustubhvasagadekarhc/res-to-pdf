@@ -10,6 +10,8 @@ const router = Router();
  *   post:
  *     summary: Generate PDF from resume data
  *     tags: [PDF]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
