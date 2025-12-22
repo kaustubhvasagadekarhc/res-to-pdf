@@ -516,7 +516,7 @@ export class PDFGeneratorService {
           resumeId: resume.id,
           fileName: 'generated-resume.pdf',
           fileUrl: fileUrl,
-          section: 'resumeJson',
+          section: '    ',
           content: JSON.stringify(resumeData),
           version: nextVersion,
         },
