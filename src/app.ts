@@ -33,17 +33,21 @@ app.get("/api/docs.json", (req: Request, res: Response) => {
   res.send(specs);
 });
 
-app.use('/auth', activityLogger, authRoutes);
+
+app.use('/auth',activityLogger, authRoutes);
+
 app.use('/upload', authenticate, activityLogger, uploadRoutes);
 app.use('/generate/pdf', authenticate, activityLogger, pdfRoutes);
 app.use('/resume', authenticate, activityLogger, resumeRoutes);
 app.use('/dashboard', authenticate, activityLogger, dashboardRoutes);
+
 app.use('/admin', activityLogger, adminRoutes); 
 // Admin routes often have their own auth, but let's leave as is or inspect. 
 // Wait, admin routes often handle their own auth or expect global auth?
 // Let's look at admin.routes.ts, it likely has `authenticate` inside.
 // For now, I'll only add it to the explicit failures.
-app.use('/recommendation', activityLogger, recommendationRoutes); // Recommendation might be public or hybrid? Let's assume we want to log if user is there.
+app.use('/recommendation', activityLogger, recommendationRoutes); 
+// Recommendation might be public or hybrid? Let's assume we want to log if user is there.
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok' });

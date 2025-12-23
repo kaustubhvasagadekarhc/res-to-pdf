@@ -40,7 +40,7 @@ router.use(authorize(['ADMIN']));
  *       500:
  *         description: Server error
  */
-router.get('/users', getAllUsers );
+router.get('/users', getAllUsers);
 
 /**
  * @swagger
@@ -65,7 +65,7 @@ router.get('/users', getAllUsers );
  *       500:
  *         description: Server error
  */
-router.get('/users/:id', getUserById );
+router.get('/users/:id', getUserById);
 
 /**
  * @swagger
@@ -88,7 +88,7 @@ router.get('/users/:id', getUserById );
  *       500:
  *         description: Server error
  */
-router.delete('/users/:id', deleteUser );
+router.delete('/users/:id', deleteUser);
 
 /**
  * @swagger
@@ -122,7 +122,7 @@ router.delete('/users/:id', deleteUser );
  *       500:
  *         description: Server error
  */
-router.patch('/users/:id/role', updateUserRole );
+router.patch('/users/:id/role', updateUserRole);
 
 /**
  * @swagger
@@ -153,7 +153,7 @@ router.patch('/users/:id/role', updateUserRole );
  *       500:
  *         description: Server error
  */
-router.patch( '/users/:id/verify', verifyUser );
+router.patch('/users/:id/verify', verifyUser);
 
 // Stats
 
@@ -187,7 +187,7 @@ router.patch( '/users/:id/verify', verifyUser );
  *       500:
  *         description: Server error
  */
-router.get( '/stats', getUserStats );
+router.get('/stats', getUserStats);
 
 // Admin Onboarding Flow
 
@@ -222,7 +222,7 @@ router.get( '/stats', getUserStats );
  *       500:
  *         description: Server error
  */
-router.post( '/users/invite', inviteUser );
+router.post('/users/invite', inviteUser);
 
 /**
  * @swagger
@@ -250,7 +250,7 @@ router.post( '/users/invite', inviteUser );
  *       500:
  *         description: Server error
  */
-router.post( '/resume/parse', upload.single('resume'), parseResume );
+router.post('/resume/parse', upload.single('resume'), parseResume);
 
 // Activity Logs
 
@@ -303,7 +303,7 @@ router.get('/activities/recent', getActivities);
  *       500:
  *         description: Server error
  */
-router.get( '/activities', getAllActivities );
+router.get('/activities', getAllActivities);
 
 // System Settings
 
@@ -321,7 +321,7 @@ router.get( '/activities', getAllActivities );
  *       500:
  *         description: Server error
  */
-router.get( '/settings', getSettings );
+router.get('/settings', getSettings);
 
 /**
  * @swagger
@@ -352,6 +352,6 @@ router.get( '/settings', getSettings );
  *       500:
  *         description: Server error
  */
-router.put( '/settings', updateSettings );
+router.put('/settings', updateSettings);
 
 export default router;

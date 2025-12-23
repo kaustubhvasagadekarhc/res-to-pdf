@@ -11,6 +11,14 @@ export class ActivityService {
                     description,
                     metadata,
                     ipAddress
+                },
+                include: {
+                    user: {
+                        select: {
+                            name: true,
+                            email: true
+                        }
+                    }
                 }
             });
         } catch (error) {
@@ -27,7 +35,11 @@ export class ActivityService {
                 user: {
                     select: {
                         name: true,
-                        email: true
+                        email: true,
+                        userType: true,
+                        role: {
+                            select: { name: true }
+                        }
                     }
                 }
             }
@@ -48,7 +60,13 @@ export class ActivityService {
                         select: {
                             id: true,
                             name: true,
-                            email: true
+                            email: true,
+                            userType: true,
+                            role: {
+                                select: {
+                                    name: true
+                                }
+                            }
                         }
                     }
                 }

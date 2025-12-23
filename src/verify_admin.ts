@@ -1,18 +1,20 @@
 
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import fs from 'fs';
 import path from 'path';
 
 // Helper to print step results
 const step = (name: string) => console.log(`\n🔹 [STEP] ${name}`);
 const success = (msg: string) => console.log(`   ✅ ${msg}`);
-const fail = (msg: string, err: any) => {
+const fail = (msg: string, err: unknown) => {
     console.error(`   ❌ ${msg}`);
-    if (err.response) {
+    if (isAxiosError(err) && err.response) {
         console.error(`      Status: ${err.response.status}`);
         console.error(`      Data:`, err.response.data);
-    } else {
+    } else if (err instanceof Error) {
         console.error(`      Error:`, err.message);
+    } else {
+        console.error(`      Error:`, String(err));
     }
 };
 
@@ -42,7 +44,7 @@ async function runTests() {
         // Verify if token is in cookie or body. Middleware checks header or cookie.
         // We will send it in header.
         if (!adminToken && res.headers['set-cookie']) {
-            // quick hack if token is only in cookie, but ideally login returns token
+        // quick hack if token is only in cookie, but ideally login returns token
             console.log('   ⚠️ Token might be in cookie only. We need token for headers.');
         }
         success('Logged in as Admin');
