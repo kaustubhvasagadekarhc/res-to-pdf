@@ -1,6 +1,7 @@
 import { fileUploadService } from "./fileUpload.service";
 import { parseService } from "./parse.service";
 import prisma from "../config/database";
+import { activityService } from "./activity.service";
 
 export class ResumeService {
     /**
@@ -36,6 +37,9 @@ export class ResumeService {
 
         // 3) Parse Resume from file URL using database resume ID
         const parsed = await parseService.parseResume(uploaded.fileUrl, resume.id);
+
+        // Log activity
+        await activityService.logActivity(userId, 'UPLOAD_RESUME', `Uploaded resume: ${uploaded.name}`, { resumeId: resume.id });
 
         return {
             uploaded,

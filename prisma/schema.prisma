@@ -38,6 +38,7 @@ model User {
   // relations
   resumes      Resume[] 
   generatedResumes GeneratedResume[]
+  activities   ActivityLog[]
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
@@ -101,4 +102,30 @@ model ResumeVersions {
   updatedAt DateTime @updatedAt
 
   @@index([resumeId])
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  action      String   // e.g., "UPLOAD_RESUME", "USER_REGISTER", "GENERATE_PDF"
+  description String?
+  metadata    Json?    // Store extra details (e.g., file names, IDs)
+  ipAddress   String? 
+  
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SystemSettings {
+  id              Int     @id @default(1) // Singleton pattern
+  allowRegistration Boolean @default(true)
+  maintenanceMode   Boolean @default(false)
+  supportEmail      String?
+  
+  maxUploadSize     Int     @default(5242880) // 5MB in bytes
+  
+  updatedAt       DateTime @updatedAt
 }

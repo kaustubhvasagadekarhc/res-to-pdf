@@ -11,6 +11,7 @@ import { registerUser } from '../services/auth/register.service';
 import { resendUserOtp } from '../services/auth/resendOtp.service';
 import { generateToken } from '../services/auth/token.service';
 import { verifyUserOtp } from '../services/auth/verifyOtp.service';
+import prisma from '../config/database';
 
 export const getToken = (req: Request, res: Response) => {
   try {
@@ -23,15 +24,31 @@ export const getToken = (req: Request, res: Response) => {
 };
 
 export const register = async (req: Request, res: Response) => {
-  try {
-    const userData = registerSchema.parse(req.body);
-    const result = await registerUser(userData);
 
-    res.status(201).json({
-      status: 'success',
-      message: 'User registered successfully. Please verify your email.',
-      data: result,
+  try {
+
+    const setting = await prisma.systemSettings.findUnique({
+      where: { id: 1 },
+      // select: { allowRegistration: true },
     });
+
+    const allowRegistration: boolean = setting?.allowRegistration ?? false;
+    console.log('Allow registration:', allowRegistration);
+    if (!allowRegistration) {
+      throw new Error('Registration is not allowed');
+    } else {
+      const userData = registerSchema.parse(req.body);
+
+      const result = await registerUser(userData);
+
+      res.status(201).json({
+        status: 'success',
+        message: 'User registered successfully. Please verify your email.',
+        data: result,
+      });
+    }
+
+
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'An error occurred';
     res.status(400).json({ status: 'error', message });
