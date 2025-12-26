@@ -8,6 +8,7 @@ import {
   logout,
   me,
 } from '../controllers/auth.controller';
+import { activityLogger } from '../middleware/activityLogger.middleware';
 
 const router = Router();
 
@@ -51,7 +52,7 @@ router.get('/token', getToken);
  *       201:
  *         description: User registered successfully
  */
-router.post('/register', register);
+router.post('/register', activityLogger, register);
 /**
  * @swagger
  * /auth/login:

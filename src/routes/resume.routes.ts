@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getUserResumeSections } from '../controllers/resume.controller';
 import { deleteResume } from '../controllers/dashboard.controller';
-
+import { activityLogger } from '../middleware/activityLogger.middleware';
 
 const router = Router();
 
@@ -34,7 +34,7 @@ const router = Router();
  *                   items:
  *                     type: object
  */
-router.get('/sections/:userId', getUserResumeSections);
+router.get('/sections/:userId', activityLogger, getUserResumeSections);
 
 
 
@@ -61,6 +61,6 @@ router.get('/sections/:userId', getUserResumeSections);
  *       404:
  *         description: Resume not found
  */
-router.delete('/:id', deleteResume);
+router.delete('/:id', activityLogger, deleteResume);
 
 export default router;

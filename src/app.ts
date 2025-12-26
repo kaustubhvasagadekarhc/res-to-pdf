@@ -7,7 +7,6 @@ import authRoutes from './routes/auth.routes';
 import resumeRoutes from './routes/resume.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import { authenticate } from './middleware/auth.middleware';
-import { activityLogger } from './middleware/activityLogger.middleware';
 import adminRoutes from './routes/admin.routes';
 import recommendationRoutes from './routes/recommendation.routes';
 import swaggerUi from 'swagger-ui-express';
@@ -34,19 +33,19 @@ app.get("/api/docs.json", (req: Request, res: Response) => {
 });
 
 
-app.use('/auth',activityLogger, authRoutes);
+app.use('/auth', authRoutes);
 
-app.use('/upload', authenticate, activityLogger, uploadRoutes);
-app.use('/generate/pdf', authenticate, activityLogger, pdfRoutes);
-app.use('/resume', authenticate, activityLogger, resumeRoutes);
-app.use('/dashboard', authenticate, activityLogger, dashboardRoutes);
+app.use('/upload', authenticate, uploadRoutes);
+app.use('/generate/pdf', authenticate, pdfRoutes);
+app.use('/resume', authenticate, resumeRoutes);
+app.use('/dashboard', authenticate, dashboardRoutes);
 
-app.use('/admin', activityLogger, adminRoutes); 
+app.use('/admin', adminRoutes);
 // Admin routes often have their own auth, but let's leave as is or inspect. 
 // Wait, admin routes often handle their own auth or expect global auth?
 // Let's look at admin.routes.ts, it likely has `authenticate` inside.
 // For now, I'll only add it to the explicit failures.
-app.use('/recommendation', activityLogger, recommendationRoutes); 
+app.use('/recommendation', recommendationRoutes);
 // Recommendation might be public or hybrid? Let's assume we want to log if user is there.
 
 app.get('/', (req, res) => {

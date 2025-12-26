@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { upload } from "../middleware/multer";
-import { resumeService } from "../services/resume.service";
+import { activityLogger } from "../middleware/activityLogger.middleware";
+import { uploadResume } from "../controllers/upload.controller";
 
 const router = Router();
 
@@ -41,22 +42,6 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-router.post("/", upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "file is required" });
-
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: "User not authenticated" });
-
-    const result = await resumeService.processResumeUpload(req.file, userId);
-
-    return res.json(result);
-
-  } catch (err: unknown) {
-    console.error("Upload+Parse Error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return res.status(500).json({ error: message });
-  }
-});
+router.post("/", upload.single("file"), activityLogger, uploadResume);
 
 export default router;
