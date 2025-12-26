@@ -32,7 +32,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
             id: decoded.id,
             email: decoded.email,
             name: user.name,
-            userType: user.userType,
+            userType: user.userType as 'USER' | 'ADMIN',
             role: user.roleId ? { id: user.roleId } : undefined
         };
         next();

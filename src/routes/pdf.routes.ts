@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { pdfGeneratorService } from '../services/pdfGenerator.service';
+import { activityLogger } from '../middleware/activityLogger.middleware';
 
 const router = Router();
 
@@ -42,7 +43,7 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.post('/', async (req, res) => {
+router.post('/', activityLogger, async (req, res) => {
   try {
     const resumeData = req.body;
     const userId = req.user?.id;

@@ -121,7 +121,13 @@ export const activityLogger = async (req: Request, res: Response, next: NextFunc
         const method = req.method;
 
         // Heuristic Action Name
-        const cleanPath = path.replace(/^\//, '').replace(/\//g, '_').toUpperCase();
+        let processingPath = path;
+        if (res.locals.targetIdentifier) {
+            const uuidRegex = /[0-9a-fA-F-]{36}/g;
+            processingPath = processingPath.replace(uuidRegex, res.locals.targetIdentifier);
+        }
+
+        const cleanPath = processingPath.replace(/^\//, '').replace(/\//g, '_').toUpperCase();
         const action = `${method}_${cleanPath}`;
 
         // Generate Description

@@ -15,6 +15,8 @@ import {
 } from '../controllers/admin.controller';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 import multer from 'multer';
+import { activityLogger } from '../middleware/activityLogger.middleware';
+
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -65,7 +67,7 @@ router.get('/users', getAllUsers);
  *       500:
  *         description: Server error
  */
-router.get('/users/:id', getUserById);
+router.get('/users/:id',  getUserById);
 
 /**
  * @swagger
@@ -88,7 +90,7 @@ router.get('/users/:id', getUserById);
  *       500:
  *         description: Server error
  */
-router.delete('/users/:id', deleteUser);
+router.delete('/users/:id', activityLogger, deleteUser);
 
 /**
  * @swagger
@@ -122,7 +124,7 @@ router.delete('/users/:id', deleteUser);
  *       500:
  *         description: Server error
  */
-router.patch('/users/:id/role', updateUserRole);
+router.patch('/users/:id/role', activityLogger, updateUserRole);
 
 /**
  * @swagger
@@ -153,7 +155,7 @@ router.patch('/users/:id/role', updateUserRole);
  *       500:
  *         description: Server error
  */
-router.patch('/users/:id/verify', verifyUser);
+router.patch('/users/:id/verify', activityLogger, verifyUser);
 
 // Stats
 
@@ -222,7 +224,7 @@ router.get('/stats', getUserStats);
  *       500:
  *         description: Server error
  */
-router.post('/users/invite', inviteUser);
+router.post('/users/invite', activityLogger, inviteUser);
 
 /**
  * @swagger
@@ -250,7 +252,7 @@ router.post('/users/invite', inviteUser);
  *       500:
  *         description: Server error
  */
-router.post('/resume/parse', upload.single('resume'), parseResume);
+router.post('/resume/parse', activityLogger, upload.single('resume'), parseResume);
 
 // Activity Logs
 
@@ -352,6 +354,6 @@ router.get('/settings', getSettings);
  *       500:
  *         description: Server error
  */
-router.put('/settings', updateSettings);
+router.put('/settings', activityLogger, updateSettings);
 
 export default router;

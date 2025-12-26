@@ -514,9 +514,10 @@ export class PDFGeneratorService {
       await prisma.resumeVersions.create({
         data: {
           resumeId: resume.id,
-          fileName: 'generated-resume.pdf',
+          fileName: `${resumeData.personal?.designation}-resume.pdf`,
           fileUrl: fileUrl,
           section: '    ',
+          jobTitle: resumeData.personal?.designation,
           content: JSON.stringify(resumeData),
           version: nextVersion,
         },

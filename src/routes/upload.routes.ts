@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { upload } from "../middleware/multer";
 import { resumeService } from "../services/resume.service";
+import { activityLogger } from "../middleware/activityLogger.middleware";
 
 const router = Router();
 
@@ -41,7 +42,7 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-router.post("/", upload.single("file"), async (req, res) => {
+router.post("/", activityLogger, upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "file is required" });
 

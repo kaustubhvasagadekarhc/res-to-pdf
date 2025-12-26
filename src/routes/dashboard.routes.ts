@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getUserResumes } from '../controllers/dashboard.controller';
+import { activityLogger } from '../middleware/activityLogger.middleware';
 
 const router = Router();
 
@@ -59,6 +60,8 @@ const router = Router();
  *       401:
  *         description: Authentication required
  */
-router.post('/resumes', getUserResumes);
+router.post('/resumes', activityLogger, getUserResumes);
+
+
 
 export default router;

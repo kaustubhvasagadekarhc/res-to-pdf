@@ -86,9 +86,10 @@ export const updateUserRole = async (req: Request, res: Response) => {
         await activityService.logActivity(
             req.user?.id || null,
             'ADMIN_UPDATE_ROLE',
-            `Admin updated role for user ${id} to ${userType}`,
-            { targetUserId: id, newRole: userType }
+            `Admin updated role for user ${user.name} to ${userType}`,
+            { targetUser: user.name, newRole: userType }
         );
+        res.locals.targetIdentifier = user.email;
         res.json({ status: 'success', data: user });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Failed to update user role' });
@@ -105,9 +106,10 @@ export const verifyUser = async (req: Request, res: Response) => {
         await activityService.logActivity(
             req.user?.id || null,
             'ADMIN_VERIFY_USER',
-            `Admin ${isVerified ? 'verified' : 'unverified'} user ${id}`,
-            { targetUserId: id, isVerified }
+            `Admin ${isVerified ? 'verified' : 'unverified'} user ${user.name}`,
+            { targetUser: user.name, isVerified }
         );
+        res.locals.targetIdentifier = user.email;
         res.json({ status: 'success', data: user });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Failed to update verification status' });

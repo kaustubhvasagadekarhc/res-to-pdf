@@ -47,6 +47,8 @@ export class ResumeService {
             resume
         };
     }
+
+ 
 }
 
 export const resumeService = new ResumeService();

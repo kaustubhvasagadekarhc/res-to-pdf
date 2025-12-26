@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { analyzeResume } from '../controllers/recommendation.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { activityLogger } from '../middleware/activityLogger.middleware';
 
 const router = Router();
 
@@ -45,6 +46,6 @@ router.use(authenticate);
  *       500:
  *         description: Server error
  */
-router.post('/analyze', analyzeResume);
+router.post('/analyze', activityLogger, analyzeResume);
 
 export default router;
