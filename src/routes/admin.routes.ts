@@ -67,7 +67,7 @@ router.get('/users', getAllUsers);
  *       500:
  *         description: Server error
  */
-router.get('/users/:id', activityLogger, getUserById);
+router.get('/users/:id',  getUserById);
 
 /**
  * @swagger
@@ -189,7 +189,7 @@ router.patch('/users/:id/verify', activityLogger, verifyUser);
  *       500:
  *         description: Server error
  */
-router.get('/stats', activityLogger, getUserStats);
+router.get('/stats', getUserStats);
 
 // Admin Onboarding Flow
 

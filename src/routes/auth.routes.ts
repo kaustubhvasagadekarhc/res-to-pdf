@@ -74,7 +74,7 @@ router.post('/register', activityLogger, register);
  *       200:
  *         description: Login successful
  */
-router.post('/login', login);
+router.post('/login', activityLogger, login);
 /**
  * @swagger
  * /auth/verify-otp:
@@ -96,7 +96,7 @@ router.post('/login', login);
  *       200:
  *         description: OTP verified successfully
  */
-router.post('/verify-otp', verifyOtp);
+router.post('/verify-otp', activityLogger, verifyOtp);
 /**
  * @swagger
  * /auth/resend-otp:
@@ -116,7 +116,7 @@ router.post('/verify-otp', verifyOtp);
  *       200:
  *         description: OTP resent successfully
  */
-router.post('/resend-otp', resendOtp);
+router.post('/resend-otp', activityLogger, resendOtp);
 
 /**
  * @swagger
@@ -130,7 +130,7 @@ router.post('/resend-otp', resendOtp);
  *       200:
  *         description: Logout successful
  */
-router.post('/logout', logout);
+router.post('/logout', activityLogger, logout);
 
 /**
  * @swagger

@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes';
 import resumeRoutes from './routes/resume.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import { authenticate } from './middleware/auth.middleware';
+
 import adminRoutes from './routes/admin.routes';
 import recommendationRoutes from './routes/recommendation.routes';
 import swaggerUi from 'swagger-ui-express';

@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { getUserResumes } from '../controllers/dashboard.controller';
+import { activityLogger } from '../middleware/activityLogger.middleware';
 
 const router = Router();
-
-import { activityLogger } from '../middleware/activityLogger.middleware';
 
 /**
  * @swagger
@@ -60,8 +59,6 @@ import { activityLogger } from '../middleware/activityLogger.middleware';
  *         description: Missing userId in request body
  *       401:
  *         description: Authentication required
- *       500:
- *         description: Internal server error
  */
 router.post('/resumes', activityLogger, getUserResumes);
 
