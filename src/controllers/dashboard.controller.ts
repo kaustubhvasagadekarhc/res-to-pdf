@@ -62,7 +62,7 @@ export const deleteResume = async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ status: 'error', message: 'Unauthorized' });
     }
-    
+
     // Check if resume exists and belongs to user
     const resume = await prisma.resumeVersions.findUnique({
       where: { id },
