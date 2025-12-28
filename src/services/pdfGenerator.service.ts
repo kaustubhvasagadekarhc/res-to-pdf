@@ -280,10 +280,10 @@ export class PDFGeneratorService {
     // WORK EXPERIENCE
     // =====================================================================
 
-    if (resume.work_experience && resume.work_experience.length > 0) {
-      sectionHeader('Work Experience');
+    const exps = resume.work_experience ? this.sortAndFilterWork(resume.work_experience) : [];
 
-      const exps = this.sortAndFilterWork(resume.work_experience);
+    if (exps.length > 0) {
+      sectionHeader('Work Experience');
 
       exps.forEach((exp, idx) => {
         const line = this.buildExperienceTitle(exp);
@@ -351,9 +351,14 @@ export class PDFGeneratorService {
     // =====================================================================
     // PROJECTS (Standalone)
     // =====================================================================
-    if (resume.projects && resume.projects.length > 0) {
+    // For projects, filter out empty objects (ones with no name and no description)
+    const validProjects = (resume.projects ?? []).filter(
+      (p) => (p.name && p.name.trim()) || (p.description && p.description.trim())
+    );
+
+    if (validProjects.length > 0) {
       sectionHeader('Projects');
-      resume.projects.forEach((project) => {
+      validProjects.forEach((project) => {
         if (project.name) {
           doc.font('Helvetica-Bold').fontSize(12).text(project.name, { width: contentWidth });
           doc.moveDown(0.2);

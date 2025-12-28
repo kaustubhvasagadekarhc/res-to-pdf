@@ -2,13 +2,13 @@
   "name": "minimal-backend",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "type": "commonjs",
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc -p .",
-    "start": "node dist/index.js",
+    "start": "node dist/src/index.js",
     "lint": "eslint --ext .ts src",
     "format": "prettier --write \"src/**/*.ts\""
   },
