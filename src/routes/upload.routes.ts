@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { upload } from "../middleware/multer";
 import { resumeService } from "../services/resume.service";
+import { activityLogger } from "../middleware/activityLogger.middleware";
 
 const router = Router();
 
@@ -10,6 +11,8 @@ const router = Router();
  *   post:
  *     summary: Upload and parse a resume PDF
  *     tags: [Resume]
+ *     security:
+ *       - bearerAuth: []
  *     consumes:
  *       - multipart/form-data
  *     requestBody:
@@ -39,11 +42,14 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-router.post("/", upload.single("file"), async (req, res) => {
+router.post("/", activityLogger, upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "file is required" });
 
-    const result = await resumeService.processResumeUpload(req.file);
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: "User not authenticated" });
+
+    const result = await resumeService.processResumeUpload(req.file, userId);
 
     return res.json(result);
 

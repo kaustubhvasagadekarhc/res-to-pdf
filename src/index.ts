@@ -1,10 +1,13 @@
 import app from "./app";
 import dotenv from "dotenv";
-
+import http from 'http';
 dotenv.config();
 
 const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, () => {
+// Create HTTP server
+const server = http.createServer(app);
+
+server.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
 });

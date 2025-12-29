@@ -1,7 +1,18 @@
 {
-  "build": {
-    "env": {
-      "PRISMA_CLI_BINARY_TARGETS": "debian-openssl-3.0.x"
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node"
     }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.ts"
+    }
+  ],
+  "env": {
+    "PRISMA_CLI_BINARY_TARGETS": "native,debian-openssl-3.0.x"
   }
-}   
+}

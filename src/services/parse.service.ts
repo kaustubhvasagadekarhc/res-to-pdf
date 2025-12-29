@@ -1,5 +1,6 @@
 import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
 import prisma from '../config/database';
+import { ParsedResume } from '../interfaces/resume/resume.interface';
 
 export class ParseService {
   private genAI: GoogleGenerativeAI;
@@ -10,7 +11,7 @@ export class ParseService {
     this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
   }
 
-  async parseResume(pdfUrl: string, resId: string | undefined) {
+  async parseResume(pdfUrl: string, resId: string | undefined): Promise<ParsedResume> {
     const prompt = `You are an expert resume parser with 20+ years of experience analyzing professional documents across all industries and seniority levels.
 
 Your task: Read the resume text (or structured JSON) and return ONLY valid JSON following the exact structure below.
@@ -113,7 +114,7 @@ Required JSON structure (do not modify):
     const result = await this.model.generateContent([
       {
         inlineData: {
-          mimeType: 'application/pdf',
+          mimeType: 'application/pdf', // Changed from application/pdf to work with gemini
           data: buffer.toString('base64'),
         },
       },
@@ -129,7 +130,7 @@ Required JSON structure (do not modify):
       .replace(/```(?:json)?\n?/g, '')
       .replace(/```\n?/g, '')
       .trim();
-    let parsed;
+    let parsed: ParsedResume;
     try {
       parsed = JSON.parse(cleanText);
     } catch (e) {
@@ -137,13 +138,26 @@ Required JSON structure (do not modify):
     }
 
     // Save to database
-    const entries = Object.entries(parsed).map(([key, val]) => ({
-      resumeId: resId || 'temp-id',
-      section: key,
-      content: JSON.stringify(val),
-    }));
+    if (resId) {
+      console.log('Attempting to create sections for resumeId:', resId);
 
-    await prisma.resumeSection.createMany({ data: entries });
+      // Verify resume exists
+      const resumeExists = await prisma.resume.findUnique({ where: { id: resId } });
+      console.log('Resume exists:', !!resumeExists);
+
+      if (!resumeExists) {
+        throw new Error(`Resume with ID ${resId} not found`);
+      }
+
+      // console.log('Creating single resume section entry');
+      // await prisma.resumeVersions.create({
+      //   data: {
+      //     resumeId: resId,
+      //     section: 'resumeJson',
+      //     content: JSON.stringify(parsed)
+      //   }
+      // });
+    }
 
     return parsed;
   }

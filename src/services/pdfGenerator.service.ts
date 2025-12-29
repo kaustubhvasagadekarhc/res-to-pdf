@@ -1,7 +1,10 @@
+import { Resume } from '@prisma/client';
 import { Response } from 'express';
 import fs from 'fs';
-import PDFDocument from 'pdfkit';
 import path from 'path';
+import PDFDocument from 'pdfkit';
+import prisma from '../config/database';
+import { fileUploadService } from './fileUpload.service';
 
 export interface ResumeData {
   personal?: {
@@ -54,9 +57,52 @@ export class PDFGeneratorService {
     return !!val && val.trim() !== '';
   }
 
+  async generatePDF(resume: ResumeData, res: Response, userId?: string, logoPath?: string) {
+    // Generate PDF to buffer
+    const pdfBuffer = await this.generatePDFBuffer(resume, logoPath);
+    // Upload PDF and store in database if user authenticated
+    if (userId) {
+      const fileName = `resume-${Date.now()}.pdf`;
+      const mockFile = {
+        buffer: pdfBuffer,
+        originalname: fileName,
+        mimetype: 'application/pdf',
+        size: pdfBuffer.length,
+      } as Express.Multer.File;
 
+      const uploaded = await fileUploadService.upload(mockFile);
+      const resumeRecord = await this.storeResumeVersion(resume, userId, uploaded.fileUrl);
 
-  generatePDF(resume: ResumeData, res: Response, logoPath?: string) {
+      if (resumeRecord) {
+        const generatedResume = await prisma.generatedResume.create({
+          data: {
+            userId,
+            resumeId: resumeRecord.id,
+            fileName: fileName,
+            fileUrl: uploaded.fileUrl,
+            fileSize: pdfBuffer.length,
+          },
+        });
+
+        return res.json({
+          status: 'success',
+          data: {
+            id: generatedResume.id,
+            fileName: generatedResume.fileName,
+            fileUrl: generatedResume.fileUrl,
+            createdAt: generatedResume.createdAt,
+          },
+        });
+      }
+    }
+
+    // Fallback: stream PDF directly
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename=resume.pdf');
+    res.send(pdfBuffer);
+  }
+
+  private async generatePDFBuffer(resume: ResumeData, logoPath?: string): Promise<Buffer> {
     const defaultLogoPath = path.join(__dirname, '../assets/logo.png');
     const finalLogoPath = logoPath || defaultLogoPath;
 
@@ -64,11 +110,6 @@ export class PDFGeneratorService {
       size: 'A4',
       margins: { top: 40, left: 40, right: 40, bottom: 40 },
     });
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename=resume.pdf');
-
-    doc.pipe(res);
 
     const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
@@ -239,10 +280,10 @@ export class PDFGeneratorService {
     // WORK EXPERIENCE
     // =====================================================================
 
-    if (resume.work_experience && resume.work_experience.length > 0) {
-      sectionHeader('Work Experience');
+    const exps = resume.work_experience ? this.sortAndFilterWork(resume.work_experience) : [];
 
-      const exps = this.sortAndFilterWork(resume.work_experience);
+    if (exps.length > 0) {
+      sectionHeader('Work Experience');
 
       exps.forEach((exp, idx) => {
         const line = this.buildExperienceTitle(exp);
@@ -310,9 +351,14 @@ export class PDFGeneratorService {
     // =====================================================================
     // PROJECTS (Standalone)
     // =====================================================================
-    if (resume.projects && resume.projects.length > 0) {
+    // For projects, filter out empty objects (ones with no name and no description)
+    const validProjects = (resume.projects ?? []).filter(
+      (p) => (p.name && p.name.trim()) || (p.description && p.description.trim())
+    );
+
+    if (validProjects.length > 0) {
       sectionHeader('Projects');
-      resume.projects.forEach((project) => {
+      validProjects.forEach((project) => {
         if (project.name) {
           doc.font('Helvetica-Bold').fontSize(12).text(project.name, { width: contentWidth });
           doc.moveDown(0.2);
@@ -433,6 +479,60 @@ export class PDFGeneratorService {
     });
 
     doc.end();
+
+    return new Promise((resolve) => {
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+    });
+  }
+
+  private async storeResumeVersion(resumeData: ResumeData, userId: string, fileUrl: string): Promise<Resume | null> {
+    try {
+      // Find or create resume record
+      let resume = await prisma.resume.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!resume) {
+        resume = await prisma.resume.create({
+          data: {
+            userId,
+            fileUrl: '',
+            fileName: 'generated-resume.pdf',
+            mimeType: 'application/pdf',
+          },
+        });
+      }
+
+      // Get current max version for this resume
+      const maxVersion = await prisma.resumeVersions.findFirst({
+        where: { resumeId: resume.id },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+
+      const nextVersion = (maxVersion?.version || 0) + 1;
+
+      // Store complete JSON as single row in ResumeSection
+      await prisma.resumeVersions.create({
+        data: {
+          resumeId: resume.id,
+          fileName: `${resumeData.personal?.designation}-resume.pdf`,
+          fileUrl: fileUrl,
+          section: '    ',
+          jobTitle: resumeData.personal?.designation,
+          content: JSON.stringify(resumeData),
+          version: nextVersion,
+        },
+      });
+
+      return resume;
+    } catch (error) {
+      console.error('Error storing resume version:', error);
+      return null;
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -522,7 +622,7 @@ export class PDFGeneratorService {
 
     const durationStr = fromOut && toOut ? `${fromOut} - ${toOut}` : (exp.duration ?? '');
 
-    return `${role} at ${company} (${durationStr})`.trim();
+    return `${role} at ${company}(${durationStr})`.trim();
   }
 }
 
