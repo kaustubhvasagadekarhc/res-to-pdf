@@ -6,7 +6,7 @@ import {
   verifyOtpSchema,
 } from '../schemas/auth.schema';
 import { loginUser } from '../services/auth/login.service';
-import { getCurrentUser } from '../services/auth/me.service';
+// import { getCurrentUser } from '../services/auth/me.service';
 import { registerUser } from '../services/auth/register.service';
 import { resendUserOtp } from '../services/auth/resendOtp.service';
 import { generateToken } from '../services/auth/token.service';
