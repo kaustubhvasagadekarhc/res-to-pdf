@@ -118,12 +118,7 @@ export const resendOtp = async (req: Request, res: Response) => {
 
 export const me = async (req: Request, res: Response) => {
   try {
-    const token = req.cookies['auth-token'];
-    if (!token) {
-      res.status(401).json({ status: 'error', message: 'Not authenticated' });
-      return;
-    }
-    const user = await getCurrentUser(token);
+    const user = req.user;
 
     res.status(200).json({
       status: 'success',

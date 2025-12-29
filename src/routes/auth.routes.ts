@@ -9,6 +9,7 @@ import {
   me,
 } from '../controllers/auth.controller';
 import { activityLogger } from '../middleware/activityLogger.middleware';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -144,6 +145,6 @@ router.post('/logout', activityLogger, logout);
  *       200:
  *         description: User data retrieved successfully
  */
-router.get('/me', me);
+router.get('/me',authenticate, me);
 
 export default router;
