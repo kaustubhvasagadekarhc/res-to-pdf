@@ -1,18 +1,5 @@
 import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
-
-interface ResumeData {
-    personal?: {
-        name?: string;
-        email?: string;
-        [key: string]: unknown;
-    };
-    summary?: string;
-    skills?: string[];
-    work_experience?: unknown[];
-    education?: unknown[];
-    projects?: unknown[];
-    [key: string]: unknown;
-}
+import { ResumeData, AnalysisResult } from '../interfaces/recommendation/recommendation.interface';
 
 export class RecommendationService {
     private genAI: GoogleGenerativeAI;
@@ -23,35 +10,29 @@ export class RecommendationService {
         this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     }
 
-    async analyzeResume(resumeJson: ResumeData) {
-        const prompt = `You are an expert ATS (Applicant Tracking System) optimizer and career coach with 20+ years of experience.
-    
-    Your task: specific, actionable improvements for the provided resume data and calculate an ATS Compatibility Score.
-    
+    async analyzeResume(resumeJson: ResumeData): Promise<AnalysisResult> {
+        const prompt = `You are an expert ATS (Applicant Tracking System) optimizer and career coach with 15+ years of experience.
+    Your task: Analyze the provided resume data, calculate an ATS Compatibility Score, provide an overall review, and give section-wise improvements.
     Input: The resume data is provided as a JSON object.
     
     Output Rules:
     - Return ONLY valid JSON following the exact structure below.
     - No markdown formatting (no \`\`\`json blocks).
-    - Provide specific, constructive feedback. Avoid generic advice like "Add more keywords." Instead, suggest *which* keywords regarding the candidate profile.
+    - Provide specific, actionable , and constructive feedback. Avoid generic advice.
+    - The overallReview must be exactly 2-3 lines (concise but comprehensive).
+    - Section improvements should be specific and actionable.
     
     Required JSON Structure:
     {
-      "atsScore": 0, // Integer 0-100 reflecting how well parsed and keyword-rich the resume is.
-      "summaryFeedback": {
-        "status": "", // "Strength" or "Needs Improvement"
-        "feedback": "" // Specific advice on the summary section
-      },
-      "skillsFeedback": {
-        "missingCriticalSkills": [], // List specific skills likely missing for their role/level
-        "feedback": ""
-      },
-      "experienceFeedback": {
-        "impactAnalysis": "", // effectively quantifying impact strategies
-        "actionVerbs": "" // Feedback on usage of strong action verbs
-      },
-      "formattingIssues": [], // List of likely formatting or structure issues based not on visual but on content structure (e.g. missing dates, unclear titles)
-      "generalImprovements": [] // List of 3-5 high-impact overall improvements
+      "atsScore": 0, // Integer 0-100 reflecting ATS compatibility (keyword optimization, structure, formatting)
+      "overallReview": "", // 2-3 lines summarizing the resume's strengths and key areas for improvement
+      "sectionImprovements": {
+        "summary": "", // Specific feedback and improvements for the professional summary section
+        "skills": "", // Feedback on skills section - missing skills, keyword optimization, relevance
+        "experience": "", // Feedback on work experience - impact quantification, action verbs, achievements
+        "education": "", // Feedback on education section - completeness, relevance, formatting
+        "projects": "" // Feedback on projects section - descriptions, technologies, impact (if applicable)
+      }
     }
     
     Resume Data:
