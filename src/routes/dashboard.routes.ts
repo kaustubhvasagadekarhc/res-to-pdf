@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUserResumes } from '../controllers/dashboard.controller';
+import { getUserResumes, renameResume } from '../controllers/dashboard.controller';
 import { activityLogger } from '../middleware/activityLogger.middleware';
 
 const router = Router();
@@ -62,6 +62,60 @@ const router = Router();
  */
 router.post('/resumes', activityLogger, getUserResumes);
 
-
+/**
+ * @swagger
+ * /dashboard/resumes/rename:
+ *   patch:
+ *     summary: Rename a resume file
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - resumeId
+ *               - fileName
+ *             properties:
+ *               resumeId:
+ *                 type: string
+ *                 description: The ID of the resume to rename
+ *               fileName:
+ *                 type: string
+ *                 description: The new file name (with or without .pdf extension)
+ *     responses:
+ *       200:
+ *         description: Resume renamed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     fileName:
+ *                       type: string
+ *       400:
+ *         description: Missing required fields
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Unauthorized - Resume does not belong to user
+ *       404:
+ *         description: Resume not found
+ *       500:
+ *         description: Server error
+ */
+router.patch('/resumes/rename', activityLogger, renameResume);
 
 export default router;

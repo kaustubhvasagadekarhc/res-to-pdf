@@ -24,6 +24,7 @@ export interface ResumeData {
   work_experience?: WorkExperience[];
   education?: Education[];
   projects?: Project[];
+  pdfName?: string;
 }
 
 export interface WorkExperience {
@@ -62,7 +63,7 @@ export class PDFGeneratorService {
     const pdfBuffer = await this.generatePDFBuffer(resume, logoPath);
     // Upload PDF and store in database if user authenticated
     if (userId) {
-      const fileName = `resume-${Date.now()}.pdf`;
+      const fileName = resume.pdfName ? `${resume.pdfName}.pdf` : `resume-${Date.now()}.pdf`;
       const mockFile = {
         buffer: pdfBuffer,
         originalname: fileName,
@@ -516,10 +517,17 @@ export class PDFGeneratorService {
       const nextVersion = (maxVersion?.version || 0) + 1;
 
       // Store complete JSON as single row in ResumeSection
+      // Use pdfName if provided, otherwise fallback to designation-based name
+      const pdfFileName = resumeData.pdfName 
+        ? `${resumeData.pdfName}.pdf`
+        : resumeData.personal?.designation 
+          ? `${resumeData.personal.designation}-resume.pdf`
+          : `resume-${Date.now()}.pdf`;
+      
       await prisma.resumeVersions.create({
         data: {
           resumeId: resume.id,
-          fileName: `${resumeData.personal?.designation}-resume.pdf`,
+          fileName: pdfFileName,
           fileUrl: fileUrl,
           section: '    ',
           jobTitle: resumeData.personal?.designation,

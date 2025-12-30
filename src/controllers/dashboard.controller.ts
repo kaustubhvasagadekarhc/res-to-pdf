@@ -34,6 +34,7 @@ export const getUserResumes = async (req: Request, res: Response) => {
     const resumeList = resumeVersions.map((version) => ({
       id: version.id,
       jobTitle: version.jobTitle,
+      fileName: version.fileName,
       resumeurl: version.fileUrl,
       section: version.section,
       content: version.content,
@@ -98,6 +99,71 @@ export const deleteResume = async (req: Request, res: Response) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete resume';
+    res.status(500).json({ status: 'error', message });
+  }
+};
+
+export const renameResume = async (req: Request, res: Response) => {
+  try {
+    const { resumeId, fileName } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+    }
+
+    if (!resumeId) {
+      return res.status(400).json({ status: 'error', message: 'Resume ID is required' });
+    }
+
+    if (!fileName || fileName.trim() === '') {
+      return res.status(400).json({ status: 'error', message: 'File name is required' });
+    }
+
+    // Check if resume exists and belongs to user
+    const resume = await prisma.resumeVersions.findUnique({
+      where: { id: resumeId },
+      include: {
+        resume: true
+      }
+    });
+
+    if (!resume) {
+      return res.status(404).json({ status: 'error', message: 'Resume not found' });
+    }
+
+    if (resume.resume.userId !== userId) {
+      return res.status(403).json({ status: 'error', message: 'Unauthorized' });
+    }
+
+    // Ensure fileName ends with .pdf extension
+    const newFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+    const oldFileName = resume.fileName;
+
+    // Update the fileName
+    const updatedResume = await prisma.resumeVersions.update({
+      where: { id: resumeId },
+      data: { fileName: newFileName }
+    });
+
+    // Log activity
+    await activityService.logActivity(
+      userId,
+      'RENAME_RESUME',
+      `Renamed resume from "${oldFileName}" to "${newFileName}"`,
+      { resumeId, oldFileName, newFileName }
+    );
+
+    return res.json({
+      status: 'success',
+      message: 'Resume renamed successfully',
+      data: {
+        id: updatedResume.id,
+        fileName: updatedResume.fileName
+      }
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to rename resume';
     res.status(500).json({ status: 'error', message });
   }
 };
