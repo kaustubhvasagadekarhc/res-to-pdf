@@ -7,7 +7,7 @@ import {
   verifyOtp,
   logout,
   me,
-  vetllyCallback,
+  vettlyCallback,
 } from '../controllers/auth.controller';
 import { activityLogger } from '../middleware/activityLogger.middleware';
 import { authenticate } from '../middleware/auth.middleware';
@@ -152,7 +152,7 @@ router.get('/me',authenticate, me);
  * @swagger
  * /auth/vetlly/callback:
  *   get:
- *     summary: Vetlly SSO callback endpoint
+ *     summary: Vettly SSO callback endpoint
  *     tags: [Auth]
  *     parameters:
  *       - in: query
@@ -160,7 +160,7 @@ router.get('/me',authenticate, me);
  *         required: true
  *         schema:
  *           type: string
- *         description: Authorization code from Vetlly
+ *         description: Authorization code from Vettly
  *       - in: query
  *         name: state
  *         schema:
@@ -172,6 +172,6 @@ router.get('/me',authenticate, me);
  *       400:
  *         description: Invalid authorization code
  */
-router.get('/vetlly/callback', activityLogger, vetllyCallback);
+router.get('/vetlly/callback', activityLogger, vettlyCallback);
 
 export default router;

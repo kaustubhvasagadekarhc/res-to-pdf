@@ -11,7 +11,7 @@ import { registerUser } from '../services/auth/register.service';
 import { resendUserOtp } from '../services/auth/resendOtp.service';
 import { generateToken } from '../services/auth/token.service';
 import { verifyUserOtp } from '../services/auth/verifyOtp.service';
-import { handleVetllyCallback } from '../services/auth/vetllySSO.service';
+import { handleVettlyCallback } from '../services/auth/vetllySSO.service';
 import prisma from '../config/database';
 
 export const getToken = (req: Request, res: Response) => {
@@ -139,7 +139,7 @@ export const logout = async (_req: Request, res: Response) => {
   });
 };
 
-export const vetllyCallback = async (req: Request, res: Response) => {
+export const vettlyCallback = async (req: Request, res: Response) => {
   try {
     const { code, state } = req.query;
 
@@ -150,7 +150,7 @@ export const vetllyCallback = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await handleVetllyCallback(code, state as string | null);
+    const result = await handleVettlyCallback(code, state as string | null);
 
     // Set auth cookie
     res.cookie('auth-token', result.token, {
@@ -167,7 +167,7 @@ export const vetllyCallback = async (req: Request, res: Response) => {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'An error occurred';
-    console.error('Vetlly SSO callback error:', error);
+    console.error('Vettly SSO callback error:', error);
     res.status(400).json({ status: 'error', message });
   }
 };

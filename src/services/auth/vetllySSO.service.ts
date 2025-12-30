@@ -2,14 +2,14 @@ import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import prisma from '../../config/database';
 
-interface VetllyTokenResponse {
+interface VettlyTokenResponse {
   access_token: string;
   token_type: string;
   expires_in: number;
   refresh_token?: string;
 }
 
-interface VetllyUserInfo {
+interface VettlyUserInfo {
   id: string;
   email: string;
   name?: string;
@@ -17,23 +17,24 @@ interface VetllyUserInfo {
   [key: string]: unknown;
 }
 
-export const handleVetllyCallback = async (code: string, state: string | null) => {
+export const handleVettlyCallback = async (code: string, state: string | null) => {
+
   const VETLLY_CLIENT_ID = process.env.VETLLY_CLIENT_ID;
   const VETLLY_CLIENT_SECRET = process.env.VETLLY_CLIENT_SECRET;
   const VETLLY_TOKEN_URL = process.env.VETLLY_TOKEN_URL || 'https://auth.vetlly.com/oauth/token';
   const VETLLY_USERINFO_URL = process.env.VETLLY_USERINFO_URL || 'https://auth.vetlly.com/oauth/userinfo';
-  // Redirect URI should match the frontend callback URL registered with Vetlly
+  // Redirect URI should match the frontend callback URL registered with Vettly
   const FRONTEND_URL = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
   const REDIRECT_URI = process.env.VETLLY_REDIRECT_URI || `${FRONTEND_URL}/auth/vetlly/callback`;
 
   if (!VETLLY_CLIENT_ID || !VETLLY_CLIENT_SECRET) {
-    throw new Error('Vetlly SSO configuration missing. Please set VETLLY_CLIENT_ID and VETLLY_CLIENT_SECRET environment variables.');
+    throw new Error('Vettly SSO configuration missing. Please set VETLLY_CLIENT_ID and VETLLY_CLIENT_SECRET environment variables.');
   }
 
   // Step 1: Exchange authorization code for access token
-  let tokenResponse: VetllyTokenResponse;
+  let tokenResponse: VettlyTokenResponse;
   try {
-    const tokenRes = await axios.post<VetllyTokenResponse>(
+    const tokenRes = await axios.post<VettlyTokenResponse>(
       VETLLY_TOKEN_URL,
       {
         grant_type: 'authorization_code',
@@ -50,14 +51,14 @@ export const handleVetllyCallback = async (code: string, state: string | null) =
     );
     tokenResponse = tokenRes.data;
   } catch (error) {
-    console.error('Vetlly token exchange error:', error);
+    console.error('Vettly token exchange error:', error);
     throw new Error('Failed to exchange authorization code for token');
   }
 
-  // Step 2: Get user info from Vetlly
-  let vetllyUser: VetllyUserInfo;
+  // Step 2: Get user info from Vettly
+  let vettlyUser: VettlyUserInfo;
   try {
-    const userRes = await axios.get<VetllyUserInfo>(
+    const userRes = await axios.get<VettlyUserInfo>(
       VETLLY_USERINFO_URL,
       {
         headers: {
@@ -65,36 +66,36 @@ export const handleVetllyCallback = async (code: string, state: string | null) =
         },
       }
     );
-    vetllyUser = userRes.data;
+    vettlyUser = userRes.data;
   } catch (error) {
-    console.error('Vetlly userinfo error:', error);
-    throw new Error('Failed to fetch user information from Vetlly');
+    console.error('Vettly userinfo error:', error);
+    throw new Error('Failed to fetch user information from Vettly');
   }
 
   // Step 3: Find or create user in database
   let user = await prisma.user.findUnique({
-    where: { email: vetllyUser.email },
+    where: { email: vettlyUser.email },
     include: { role: true },
   });
 
   if (!user) {
-    // Create new user from Vetlly SSO
+    // Create new user from Vettly SSO
     user = await prisma.user.create({
       data: {
-        email: vetllyUser.email,
-        name: vetllyUser.name || vetllyUser.email.split('@')[0],
+        email: vettlyUser.email,
+        name: vettlyUser.name || vettlyUser.email.split('@')[0],
         password: '', // SSO users don't have passwords
-        isVerified: true, // Vetlly verified users are auto-verified
+        isVerified: true, // Vettly verified users are auto-verified
         userType: 'USER',
       },
       include: { role: true },
     });
   } else {
     // Update user if needed (e.g., name, picture)
-    if (vetllyUser.name && user.name !== vetllyUser.name) {
+    if (vettlyUser.name && user.name !== vettlyUser.name) {
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { name: vetllyUser.name },
+        data: { name: vettlyUser.name },
         include: { role: true },
       });
     }
