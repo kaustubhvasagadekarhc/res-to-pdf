@@ -12,26 +12,16 @@ export interface ResumeData {
     [key: string]: unknown;
 }
 
-export interface SummaryFeedback {
-    status: string;
-    feedback: string;
-}
-
-export interface SkillsFeedback {
-    missingCriticalSkills: string[];
-    feedback: string;
-}
-
-export interface ExperienceFeedback {
-    impactAnalysis: string;
-    actionVerbs: string;
+export interface SectionImprovements {
+    summary: string;
+    skills: string;
+    experience: string;
+    education: string;
+    projects: string;
 }
 
 export interface AnalysisResult {
     atsScore: number;
-    summaryFeedback: SummaryFeedback;
-    skillsFeedback: SkillsFeedback;
-    experienceFeedback: ExperienceFeedback;
-    formattingIssues: string[];
-    generalImprovements: string[];
+    overallReview: string;
+    sectionImprovements: SectionImprovements;
 }

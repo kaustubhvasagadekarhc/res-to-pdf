@@ -11,6 +11,7 @@ import { registerUser } from '../services/auth/register.service';
 import { resendUserOtp } from '../services/auth/resendOtp.service';
 import { generateToken } from '../services/auth/token.service';
 import { verifyUserOtp } from '../services/auth/verifyOtp.service';
+import { handleVetllyCallback } from '../services/auth/vetllySSO.service';
 import prisma from '../config/database';
 
 export const getToken = (req: Request, res: Response) => {
@@ -26,7 +27,6 @@ export const getToken = (req: Request, res: Response) => {
 export const register = async (req: Request, res: Response) => {
 
   try {
-
     const setting = await prisma.systemSettings.findUnique({
       where: { id: 1 },
       // select: { allowRegistration: true },
@@ -38,7 +38,6 @@ export const register = async (req: Request, res: Response) => {
       throw new Error('Registration is not allowed');
     } else {
       const userData = registerSchema.parse(req.body);
-
       const result = await registerUser(userData);
 
       res.status(201).json({
@@ -138,4 +137,37 @@ export const logout = async (_req: Request, res: Response) => {
     status: 'success',
     message: 'Logged out successfully',
   });
+};
+
+export const vetllyCallback = async (req: Request, res: Response) => {
+  try {
+    const { code, state } = req.query;
+
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Authorization code is required',
+      });
+    }
+
+    const result = await handleVetllyCallback(code, state as string | null);
+
+    // Set auth cookie
+    res.cookie('auth-token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'SSO authentication successful',
+      data: result,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An error occurred';
+    console.error('Vetlly SSO callback error:', error);
+    res.status(400).json({ status: 'error', message });
+  }
 };

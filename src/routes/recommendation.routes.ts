@@ -41,6 +41,23 @@ router.use(authenticate);
  *                   properties:
  *                     atsScore:
  *                       type: integer
+ *                       description: ATS compatibility score (0-100)
+ *                     overallReview:
+ *                       type: string
+ *                       description: Overall review in 2-3 lines
+ *                     sectionImprovements:
+ *                       type: object
+ *                       properties:
+ *                         summary:
+ *                           type: string
+ *                         skills:
+ *                           type: string
+ *                         experience:
+ *                           type: string
+ *                         education:
+ *                           type: string
+ *                         projects:
+ *                           type: string
  *       400:
  *         description: Missing resume data
  *       500:

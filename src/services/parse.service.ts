@@ -56,6 +56,8 @@ SPECIAL INSTRUCTIONS FOR KEY FIELDS:
 
 **personal field:**
 - Extract only non-sensitive contact information (name, email, mobile, location, designation/title).
+- name: Extract the full name of the candidate with first letter capital follow with in lowercase. (e.g., "JOHN DOE" -> "John doe" or "john doe" -> "John doe").
+- phone number: Extract the phone number of the candidate with country code. (e.g., "+91 9876543210" -> "+919876543210").
 - gender and marital_status: Only include if explicitly stated; otherwise leave empty.
 - designation: Extract the primary professional title or role.
 - location: Format as "City, State/Region, Country" (e.g., "San Francisco, CA, USA").
