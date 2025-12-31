@@ -4,6 +4,8 @@ import {
   registerSchema,
   resendOtpSchema,
   verifyOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from '../schemas/auth.schema';
 import { loginUser } from '../services/auth/login.service';
 // import { getCurrentUser } from '../services/auth/me.service';
@@ -12,6 +14,8 @@ import { resendUserOtp } from '../services/auth/resendOtp.service';
 import { generateToken } from '../services/auth/token.service';
 import { verifyUserOtp } from '../services/auth/verifyOtp.service';
 import { handleVettlyCallback } from '../services/auth/vetllySSO.service';
+import { forgotPassword } from '../services/auth/forgotPassword.service';
+import { resetPassword } from '../services/auth/resetPassword.service';
 import prisma from '../config/database';
 
 export const getToken = (req: Request, res: Response) => {
@@ -177,6 +181,38 @@ export const vettlyCallback = async (req: Request, res: Response) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'An error occurred';
     console.error('Vettly SSO callback error:', error);
+    res.status(400).json({ status: 'error', message });
+  }
+};
+
+export const forgotPasswordController = async (req: Request, res: Response) => {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    const result = await forgotPassword(email);
+
+    res.status(200).json({
+      status: 'success',
+      message: result.message,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An error occurred';
+    console.error('Forgot password error:', error);
+    res.status(400).json({ status: 'error', message });
+  }
+};
+
+export const resetPasswordController = async (req: Request, res: Response) => {
+  try {
+    const { email, otp, newPassword } = resetPasswordSchema.parse(req.body);
+    const result = await resetPassword(email, otp, newPassword);
+
+    res.status(200).json({
+      status: 'success',
+      message: result.message,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An error occurred';
+    console.error('Reset password error:', error);
     res.status(400).json({ status: 'error', message });
   }
 };

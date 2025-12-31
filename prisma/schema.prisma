@@ -30,6 +30,10 @@ model User {
   otp          String?
   otpExpiry    DateTime?   @map("otp_expiry")
 
+  // OTP fields for password reset
+  passwordResetOtp          String?   @map("password_reset_otp")
+  passwordResetOtpExpiry    DateTime? @map("password_reset_otp_expiry")
+
   userType     UserType    // USER or ADMIN 
 
   roleId       Int?
