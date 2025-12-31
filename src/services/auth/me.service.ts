@@ -1,13 +1,8 @@
-import jwt from 'jsonwebtoken';
 import prisma from "../../config/database";
+import { verifyToken } from "../../utils/jwt";
 
 export const getCurrentUser = async (token: string) => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("Server configuration error: JWT secret not set");
-  }
-
-  const decoded = jwt.verify(token, secret) as { id: string };
+  const decoded = verifyToken(token);
   const user = await prisma.user.findUnique({
     where: { id: decoded.id },
     select: {

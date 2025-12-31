@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { activityService } from '../services/activity.service';
+import { verifyToken } from '../utils/jwt';
 
 interface DecodedUser {
     id: string;
@@ -101,9 +101,13 @@ export const activityLogger = async (req: Request, res: Response, next: NextFunc
         try {
             const token =
                 req.cookies['auth-token'] || req.header('Authorization')?.replace('Bearer ', '');
-            if (token && process.env.JWT_SECRET) {
-                const decoded = jwt.verify(token, process.env.JWT_SECRET) as DecodedUser;
-                userId = decoded.id;
+            if (token) {
+                try {
+                    const decoded = verifyToken(token);
+                    userId = decoded.id;
+                } catch (error) {
+                    // Token invalid - ignore
+                }
             }
         } catch (error) {
             // Token invalid - ignore

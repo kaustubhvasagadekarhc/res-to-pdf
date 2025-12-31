@@ -143,10 +143,19 @@ export const vettlyCallback = async (req: Request, res: Response) => {
   try {
     const { code, state } = req.query;
 
+    // Validate authorization code
     if (!code || typeof code !== 'string') {
       return res.status(400).json({
         status: 'error',
         message: 'Authorization code is required',
+      });
+    }
+
+    // Validate state parameter if provided (CSRF protection)
+    if (state && typeof state !== 'string') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid state parameter',
       });
     }
 
