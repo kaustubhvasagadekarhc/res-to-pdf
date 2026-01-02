@@ -145,13 +145,24 @@ export const logout = async (_req: Request, res: Response) => {
 
 export const vettlyCallback = async (req: Request, res: Response) => {
   try {
-    const { code, state } = req.query;
+    // Vettly sends sso_code, but we also support 'code' for backward compatibility
+    const ssoCode = (req.query.sso_code || req.query.code) as string;
+    const ssoSecret = req.query.sso_secret as string;
+    const state = req.query.state as string | undefined;
 
-    // Validate authorization code
-    if (!code || typeof code !== 'string') {
+    // Validate SSO code
+    if (!ssoCode || typeof ssoCode !== 'string') {
       return res.status(400).json({
         status: 'error',
-        message: 'Authorization code is required',
+        message: 'SSO code is required',
+      });
+    }
+
+    // Validate SSO secret
+    if (!ssoSecret || typeof ssoSecret !== 'string') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'SSO secret is required',
       });
     }
 
@@ -163,7 +174,7 @@ export const vettlyCallback = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await handleVettlyCallback(code, state as string | null);
+    const result = await handleVettlyCallback(ssoCode, ssoSecret);
 
     // Set auth cookie
     res.cookie('auth-token', result.token, {

@@ -3,113 +3,106 @@ import prisma from '../../config/database';
 import { config, validateVettlyConfig } from '../../config/env';
 import { generateToken } from '../../utils/jwt';
 
-interface VettlyTokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-  refresh_token?: string;
+interface VettlyVerifyResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    email: string;
+    name: string;
+    jobTitle?: string;
+    isVerified: boolean;
+    language?: string;
+    isActive: boolean;
+    emailVerifiedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+    profile?: {
+      phoneNumber?: string;
+      location?: string;
+      skills?: string[];
+      experience?: number;
+      resumeUrl?: string;
+      portfolioUrl?: string;
+      linkedinUrl?: string;
+      bio?: string;
+      profilePicture?: string;
+    };
+  };
 }
 
-interface VettlyUserInfo {
-  id: string;
-  email: string;
-  name?: string;
-  picture?: string;
-  [key: string]: unknown;
+interface VettlyErrorResponse {
+  success: false;
+  message: string;
+  error: {
+    code: string;
+    details?: unknown;
+    stack?: string;
+  };
 }
 
-export const handleVettlyCallback = async (code: string, state: string | null) => {
+export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) => {
   // Validate configuration
   validateVettlyConfig();
 
-  const { clientId, clientSecret, tokenUrl, userInfoUrl, redirectUri } = config.vettly;
+  const { apiBaseUrl } = config.vettly;
 
-  // Step 1: Exchange authorization code for access token
-  let tokenResponse: VettlyTokenResponse;
+  // Step 1: Verify candidate with Vettly API using sso_code and sso_secret
+  let vettlyUser: VettlyVerifyResponse['data'];
   try {
-    const tokenRes = await axios.post<VettlyTokenResponse>(
-      tokenUrl,
+    const verifyRes = await axios.get<VettlyVerifyResponse>(
+      `${apiBaseUrl}/api/v1/sso/verify-candidate`,
       {
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: redirectUri,
-        client_id: clientId,
-        client_secret: clientSecret,
-      },
-      {
+        params: {
+          sso_code: ssoCode,
+          sso_secret: ssoSecret,
+        },
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
         },
         timeout: 10000, // 10 second timeout
       }
     );
-    tokenResponse = tokenRes.data;
+
+    if (!verifyRes.data.success || !verifyRes.data.data) {
+      throw new Error(verifyRes.data.message || 'Failed to verify candidate');
+    }
+
+    vettlyUser = verifyRes.data.data;
   } catch (error) {
-    console.error('Vettly token exchange error:', error);
+    console.error('Vettly verification error:', error);
     
     // Provide more specific error messages
     if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError<{ error?: string; error_description?: string }>;
+      const axiosError = error as AxiosError<VettlyErrorResponse>;
       const status = axiosError.response?.status;
       const errorData = axiosError.response?.data;
       
       if (status === 400) {
-        throw new Error(`Invalid authorization code: ${errorData?.error_description || errorData?.error || 'Bad request'}`);
+        throw new Error(errorData?.message || 'Missing or invalid query parameters');
       } else if (status === 401) {
-        throw new Error(`Vettly authentication failed: ${errorData?.error_description || errorData?.error || 'Unauthorized'}`);
+        throw new Error(errorData?.message || 'Invalid SSO code or secret');
       } else if (status && status >= 500) {
-        throw new Error(`Vettly service unavailable: ${errorData?.error_description || 'Internal server error'}`);
+        throw new Error(errorData?.message || 'Vettly service unavailable');
       } else if (error.code === 'ECONNABORTED') {
         throw new Error('Request to Vettly timed out. Please try again.');
       }
     }
     
-    throw new Error(`Failed to exchange authorization code: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(`Failed to verify candidate with Vettly: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
-  // Step 2: Get user info from Vettly
-  let vettlyUser: VettlyUserInfo;
-  try {
-    const userRes = await axios.get<VettlyUserInfo>(
-      userInfoUrl,
-      {
-        headers: {
-          Authorization: `Bearer ${tokenResponse.access_token}`,
-        },
-        timeout: 10000, // 10 second timeout
-      }
-    );
-    vettlyUser = userRes.data;
-  } catch (error) {
-    console.error('Vettly userinfo error:', error);
-    
-    // Provide more specific error messages
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError<{ error?: string; error_description?: string }>;
-      const status = axiosError.response?.status;
-      
-      if (status === 401) {
-        throw new Error('Invalid access token from Vettly');
-      } else if (status && status >= 500) {
-        throw new Error('Vettly userinfo service unavailable');
-      } else if (error.code === 'ECONNABORTED') {
-        throw new Error('Request to Vettly timed out. Please try again.');
-      }
-    }
-    
-    throw new Error(`Failed to fetch user information from Vettly: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-
-  // Step 3: Find or create user in database (using transaction for atomicity)
+  // Step 2: Find or create user in database (using transaction for atomicity)
   const { user, roleName } = await prisma.$transaction(async (tx) => {
     let user = await tx.user.findUnique({
-      where: { email: vettlyUser.email },
+      where: { email: vettlyUser.email  },
       select: {
         id: true,
         email: true,
         name: true,
         userType: true,
         roleId: true,
+        jobTitle: true,
       },
     });
 
@@ -122,8 +115,12 @@ export const handleVettlyCallback = async (code: string, state: string | null) =
           email: vettlyUser.email,
           name: vettlyUser.name || vettlyUser.email.split('@')[0],
           password: '', // SSO users don't have passwords
-          isVerified: true, // Vettly verified users are auto-verified
+          isVerified: vettlyUser.isVerified || true, // Use Vettly verification status
           userType: 'USER',
+          jobTitle: vettlyUser.jobTitle || null,
+          vettlyUserId: vettlyUser.id, // Store Vettly's user ID
+          isSSOUser: true, // Mark as SSO user
+          lastSSOLoginAt: new Date(), // Track SSO login time 
         },
         select: {
           id: true,
@@ -131,23 +128,52 @@ export const handleVettlyCallback = async (code: string, state: string | null) =
           name: true,
           userType: true,
           roleId: true,
+          jobTitle: true,
         },
       });
     } else {
-      // Update user if name changed
+      // Update user if name, jobTitle, or Vettly user ID changed
+      const updateData: { 
+        name?: string; 
+        jobTitle?: string | null; 
+        isVerified?: boolean;
+        vettlyUserId?: string;
+        isSSOUser?: boolean;
+        lastSSOLoginAt?: Date;
+      } = {
+        // Always update SSO-related fields on login
+        isSSOUser: true,
+        lastSSOLoginAt: new Date(),
+      };
+      
       if (vettlyUser.name && user.name !== vettlyUser.name) {
-        user = await tx.user.update({
-          where: { id: user.id },
-          data: { name: vettlyUser.name },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            userType: true,
-            roleId: true,
-          },
-        });
+        updateData.name = vettlyUser.name;
       }
+      
+      if (vettlyUser.jobTitle !== undefined && user.jobTitle !== vettlyUser.jobTitle) {
+        updateData.jobTitle = vettlyUser.jobTitle || null;
+      }
+      
+      // Update verification status if provided
+      if (vettlyUser.isVerified !== undefined) {
+        updateData.isVerified = vettlyUser.isVerified;
+      }
+
+      // Update Vettly user ID if not set or changed
+      updateData.vettlyUserId = vettlyUser.id;
+
+      user = await tx.user.update({
+        where: { id: user.id },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          userType: true,
+          roleId: true,
+          jobTitle: true,
+        },
+      });
     }
 
     // Fetch role name if roleId exists
@@ -162,7 +188,7 @@ export const handleVettlyCallback = async (code: string, state: string | null) =
     return { user, roleName };
   });
 
-  // Step 4: Generate JWT token
+  // Step 3: Generate JWT token
   const token = generateToken({
     id: user.id,
     email: user.email,
