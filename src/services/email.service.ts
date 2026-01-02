@@ -94,3 +94,33 @@ export const sendAdminInvitationEmail = async (email: string, name: string, temp
         throw new Error('Failed to send invitation email');
     }
 };
+
+export const sendPasswordResetOtpEmail = async (email: string, otp: string) => {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Password Reset Code',
+        text: `Your password reset code is: ${otp}. It expires in 10 minutes. Use this code to reset your password at ${frontendUrl}/reset-password`,
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2>Password Reset Request</h2>
+                <p>You have requested to reset your password. Use the code below to complete the process:</p>
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+                    <p style="font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 0; color: #007bff;">${otp}</p>
+                </div>
+                <p>This code will expire in <strong>10 minutes</strong>.</p>
+                <p>If you didn't request this, please ignore this email.</p>
+                <a href="${frontendUrl}/reset-password" style="display: inline-block; background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px;">Reset Password</a>
+            </div>
+        `,
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`Password reset OTP sent to ${email}`);
+    } catch (error) {
+        console.error('Error sending password reset email:', error);
+        throw new Error('Failed to send password reset email');
+    }
+};

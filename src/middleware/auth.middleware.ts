@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import prisma from '../config/database';
-
-
+import { verifyToken } from '../utils/jwt';
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies['auth-token'] || req.header('Authorization')?.replace('Bearer ', '');
@@ -12,17 +10,20 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         return;
     }
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-        res.status(500).json({ status: 'error', message: 'Server configuration error: JWT secret not set' });
-        return;
-    }
-
     try {
-        const decoded = jwt.verify(token, secret) as { id: string; email: string };
+        const decoded = verifyToken(token);
 
         // Optional: Check if user still exists in DB
-        const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+        const user = await prisma.user.findUnique({ 
+            where: { id: decoded.id },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                userType: true,
+                roleId: true,
+            },
+        });
         if (!user) {
             res.status(401).json({ status: 'error', message: 'User not found' });
             return;

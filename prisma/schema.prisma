@@ -14,24 +14,37 @@ model Role {
 }
 
 model User {
-  id                        String            @id @default(uuid())
-  name                      String?
-  email                     String            @unique
-  password                  String            @map("password_hash")
-  jobTitle                  String?
-  isVerified                Boolean           @default(false)
-  otp                       String?
-  otpExpiry                 DateTime?         @map("otp_expiry")
-  userType                  UserType
-  roleId                    Int?
-  createdAt                 DateTime          @default(now()) @map("created_at")
-  updatedAt                 DateTime          @updatedAt @map("updated_at")
-  password_reset_otp        String?
-  password_reset_otp_expiry DateTime?
-  activities                ActivityLog[]
-  generatedResumes          GeneratedResume[]
-  resumes                   Resume[]
-  role                      Role?             @relation(fields: [roleId], references: [id])
+  id           String      @id @default(uuid())
+  name         String?
+  email        String      @unique
+  password     String      @map("password_hash")
+  jobTitle     String?
+  isVerified   Boolean     @default(false)
+
+  // OTP fields for email verification
+  otp          String?
+  otpExpiry    DateTime?   @map("otp_expiry")
+
+  // OTP fields for password reset
+  passwordResetOtp          String?   @map("password_reset_otp")
+  passwordResetOtpExpiry    DateTime? @map("password_reset_otp_expiry")
+
+  // SSO fields for Vettly authentication
+  vettlyUserId              String?   @unique @map("vettly_user_id")
+  isSSOUser                 Boolean   @default(false) @map("is_sso_user")
+  lastSSOLoginAt            DateTime? @map("last_sso_login_at")
+
+  userType     UserType    // USER or ADMIN 
+
+  roleId       Int?
+  role         Role?       @relation(fields: [roleId], references: [id])
+
+  // relations
+  resumes      Resume[] 
+  generatedResumes GeneratedResume[]
+  activities   ActivityLog[]
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
 
   @@index([email])
   @@index([userType])

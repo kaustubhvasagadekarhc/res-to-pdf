@@ -1,13 +1,21 @@
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import prisma from '../../config/database';
 import { LoginRequest } from '../../interfaces/auth/auth.interface';
+import { generateToken } from '../../utils/jwt';
 
 export const loginUser = async (data: LoginRequest) => {
   const { email, password } = data;
   const user = await prisma.user.findUnique({
     where: { email: email },
-    include: { role: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      password: true,
+      isVerified: true,
+      userType: true,
+      roleId: true,
+    },
   });
 
   if (!user) {
@@ -23,13 +31,20 @@ export const loginUser = async (data: LoginRequest) => {
     throw new Error('Invalid credentials');
   }
 
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('Server configuration error: JWT secret not set');
+  // Fetch role name if roleId exists
+  let roleName: string | undefined;
+  if (user.roleId) {
+    const role = await prisma.role.findUnique({
+      where: { id: user.roleId },
+      select: { name: true },
+    });
+    roleName = role?.name;
   }
 
-  const token = jwt.sign({ id: user.id, email: user.email, role: user.role?.name }, secret, {
-    expiresIn: '7d',
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    role: roleName,
   });
 
   return {
