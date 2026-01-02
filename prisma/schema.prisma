@@ -1,105 +1,87 @@
 generator client {
-  provider        = "prisma-client-js"
-  binaryTargets   = ["native", "debian-openssl-3.0.x"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-enum UserType {
-  USER
-  ADMIN
-}
-
 model Role {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
+  id    Int    @id @default(autoincrement())
+  name  String @unique
   users User[]
 }
 
 model User {
-  id           String      @id @default(uuid())
-  name         String?
-  email        String      @unique
-  password     String      @map("password_hash")
-  jobTitle     String?
-  isVerified   Boolean     @default(false)
-
-  // OTP fields for email verification
-  otp          String?
-  otpExpiry    DateTime?   @map("otp_expiry")
-
-  userType     UserType    // USER or ADMIN 
-
-  roleId       Int?
-  role         Role?       @relation(fields: [roleId], references: [id])
-
-  // relations
-  resumes      Resume[] 
-  generatedResumes GeneratedResume[]
-  activities   ActivityLog[]
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
+  id                        String            @id @default(uuid())
+  name                      String?
+  email                     String            @unique
+  password                  String            @map("password_hash")
+  jobTitle                  String?
+  isVerified                Boolean           @default(false)
+  otp                       String?
+  otpExpiry                 DateTime?         @map("otp_expiry")
+  userType                  UserType
+  roleId                    Int?
+  createdAt                 DateTime          @default(now()) @map("created_at")
+  updatedAt                 DateTime          @updatedAt @map("updated_at")
+  password_reset_otp        String?
+  password_reset_otp_expiry DateTime?
+  activities                ActivityLog[]
+  generatedResumes          GeneratedResume[]
+  resumes                   Resume[]
+  role                      Role?             @relation(fields: [roleId], references: [id])
 
   @@index([email])
   @@index([userType])
 }
 
 model Resume {
-  id             String   @id @default(uuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  fileUrl        String
-  fileName       String
-  mimeType       String
-
-  appwriteFileId String?
-  virtualPath    String?
-  rawText        String?
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  version       ResumeVersions[]
+  id               String            @id @default(uuid())
+  userId           String
+  fileUrl          String
+  fileName         String
+  mimeType         String
+  appwriteFileId   String?
+  virtualPath      String?
+  rawText          String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
   generatedResumes GeneratedResume[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version          ResumeVersions[]
 
   @@index([userId])
 }
 
 model GeneratedResume {
   id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   resumeId  String
-  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  version   Int      @default(1)
-
   fileName  String
   fileUrl   String
   fileSize  Int?
-  
   createdAt DateTime @default(now())
-  
+  userId    String
+  version   Int      @default(1)
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([resumeId])
 }
 
 model ResumeVersions {
   id        String   @id @default(uuid())
-  jobTitle  String?  
+  jobTitle  String?
   resumeId  String
-  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  fileName  String
-  fileUrl   String    
-
   section   String
   content   String
-
   version   Int      @default(1)
-  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  fileName  String
+  fileUrl   String
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 
   @@index([resumeId])
 }
@@ -107,25 +89,26 @@ model ResumeVersions {
 model ActivityLog {
   id          String   @id @default(uuid())
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  action      String   // e.g., "UPLOAD_RESUME", "USER_REGISTER", "GENERATE_PDF"
+  action      String
   description String?
-  metadata    Json?    // Store extra details (e.g., file names, IDs)
-  ipAddress   String? 
-  
+  metadata    Json?
+  ipAddress   String?
   createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
 
 model SystemSettings {
-  id              Int     @id @default(1) // Singleton pattern
-  allowRegistration Boolean @default(true)
-  maintenanceMode   Boolean @default(false)
+  id                Int      @id @default(1)
+  allowRegistration Boolean  @default(true)
+  maintenanceMode   Boolean  @default(false)
   supportEmail      String?
-  
-  maxUploadSize     Int     @default(5242880) // 5MB in bytes
-  
-  updatedAt       DateTime @updatedAt
+  maxUploadSize     Int      @default(5242880)
+  updatedAt         DateTime @updatedAt
+}
+
+enum UserType {
+  USER
+  ADMIN
 }
