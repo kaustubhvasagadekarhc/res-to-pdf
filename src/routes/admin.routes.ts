@@ -10,6 +10,7 @@ import {
     parseResume,
     getActivities,
     getAllActivities,
+    getActivityStats,
     getSettings,
     updateSettings
 } from '../controllers/admin.controller';
@@ -306,6 +307,35 @@ router.get('/activities/recent', getActivities);
  *         description: Server error
  */
 router.get('/activities', getAllActivities);
+
+/**
+ * @swagger
+ * /admin/activities/stats:
+ *   get:
+ *     summary: Get activity statistics
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Start date for statistics (ISO 8601)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: End date for statistics (ISO 8601)
+ *     responses:
+ *       200:
+ *         description: Activity statistics retrieved
+ *       500:
+ *         description: Server error
+ */
+router.get('/activities/stats', getActivityStats);
 
 // System Settings
 

@@ -1,10 +1,18 @@
-import jwt from 'jsonwebtoken';
 import prisma from "../../config/database";
+import { generateToken } from "../../utils/jwt";
 
 export const verifyUserOtp = async (email: string, otp: string) => {
   const user = await prisma.user.findUnique({
     where: { email },
-    include: { role: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      isVerified: true,
+      otp: true,
+      otpExpiry: true,
+      roleId: true,
+    },
   });
   
   if (!user) {
@@ -24,16 +32,21 @@ export const verifyUserOtp = async (email: string, otp: string) => {
     data: { isVerified: true, otp: null, otpExpiry: null },
   });
 
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("Server configuration error: JWT secret not set");
+  // Fetch role name if roleId exists
+  let roleName: string | undefined;
+  if (user.roleId) {
+    const role = await prisma.role.findUnique({
+      where: { id: user.roleId },
+      select: { name: true },
+    });
+    roleName = role?.name;
   }
 
-  const token = jwt.sign(
-    { id: user.id, email: user.email, role: user.role?.name },
-    secret,
-    { expiresIn: "7d" }
-  );
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    role: roleName,
+  });
 
   return {
     token,
@@ -41,7 +54,7 @@ export const verifyUserOtp = async (email: string, otp: string) => {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role?.name,
+      role: roleName,
     },
   };
 };

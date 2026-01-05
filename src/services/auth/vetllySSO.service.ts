@@ -1,119 +1,199 @@
-import axios from 'axios';
-import jwt from 'jsonwebtoken';
+import axios, { AxiosError } from 'axios';
 import prisma from '../../config/database';
+import { config, validateVettlyConfig } from '../../config/env';
+import { generateToken } from '../../utils/jwt';
 
-interface VettlyTokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-  refresh_token?: string;
+interface VettlyVerifyResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    email: string;
+    name: string;
+    jobTitle?: string;
+    isVerified: boolean;
+    language?: string;
+    isActive: boolean;
+    emailVerifiedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+    profile?: {
+      phoneNumber?: string;
+      location?: string;
+      skills?: string[];
+      experience?: number;
+      resumeUrl?: string;
+      portfolioUrl?: string;
+      linkedinUrl?: string;
+      bio?: string;
+      profilePicture?: string;
+    };
+  };
 }
 
-interface VettlyUserInfo {
-  id: string;
-  email: string;
-  name?: string;
-  picture?: string;
-  [key: string]: unknown;
+interface VettlyErrorResponse {
+  success: false;
+  message: string;
+  error: {
+    code: string;
+    details?: unknown;
+    stack?: string;
+  };
 }
 
-export const handleVettlyCallback = async (code: string, state: string | null) => {
+export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) => {
+  // Validate configuration
+  validateVettlyConfig();
 
-  const VETLLY_CLIENT_ID = process.env.VETLLY_CLIENT_ID;
-  const VETLLY_CLIENT_SECRET = process.env.VETLLY_CLIENT_SECRET;
-  const VETLLY_TOKEN_URL = process.env.VETLLY_TOKEN_URL || 'https://auth.vetlly.com/oauth/token';
-  const VETLLY_USERINFO_URL = process.env.VETLLY_USERINFO_URL || 'https://auth.vetlly.com/oauth/userinfo';
-  // Redirect URI should match the frontend callback URL registered with Vettly
-  const FRONTEND_URL = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
-  const REDIRECT_URI = process.env.VETLLY_REDIRECT_URI || `${FRONTEND_URL}/auth/vetlly/callback`;
+  const { apiBaseUrl } = config.vettly;
 
-  if (!VETLLY_CLIENT_ID || !VETLLY_CLIENT_SECRET) {
-    throw new Error('Vettly SSO configuration missing. Please set VETLLY_CLIENT_ID and VETLLY_CLIENT_SECRET environment variables.');
-  }
-
-  // Step 1: Exchange authorization code for access token
-  let tokenResponse: VettlyTokenResponse;
+  // Step 1: Verify candidate with Vettly API using sso_code and sso_secret
+  let vettlyUser: VettlyVerifyResponse['data'];
   try {
-    const tokenRes = await axios.post<VettlyTokenResponse>(
-      VETLLY_TOKEN_URL,
+    const verifyRes = await axios.get<VettlyVerifyResponse>(
+      `${apiBaseUrl}/api/v1/sso/verify-candidate`,
       {
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: REDIRECT_URI,
-        client_id: VETLLY_CLIENT_ID,
-        client_secret: VETLLY_CLIENT_SECRET,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+        params: {
+          sso_code: ssoCode,
+          sso_secret: ssoSecret,
         },
+        headers: {
+          'Accept': 'application/json',
+        },
+        timeout: 10000, // 10 second timeout
       }
     );
-    tokenResponse = tokenRes.data;
-  } catch (error) {
-    console.error('Vettly token exchange error:', error);
-    throw new Error('Failed to exchange authorization code for token');
-  }
 
-  // Step 2: Get user info from Vettly
-  let vettlyUser: VettlyUserInfo;
-  try {
-    const userRes = await axios.get<VettlyUserInfo>(
-      VETLLY_USERINFO_URL,
-      {
-        headers: {
-          Authorization: `Bearer ${tokenResponse.access_token}`,
-        },
+    if (!verifyRes.data.success || !verifyRes.data.data) {
+      throw new Error(verifyRes.data.message || 'Failed to verify candidate');
+    }
+
+    vettlyUser = verifyRes.data.data;
+  } catch (error) {
+    console.error('Vettly verification error:', error);
+    
+    // Provide more specific error messages
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError<VettlyErrorResponse>;
+      const status = axiosError.response?.status;
+      const errorData = axiosError.response?.data;
+      
+      if (status === 400) {
+        throw new Error(errorData?.message || 'Missing or invalid query parameters');
+      } else if (status === 401) {
+        throw new Error(errorData?.message || 'Invalid SSO code or secret');
+      } else if (status && status >= 500) {
+        throw new Error(errorData?.message || 'Vettly service unavailable');
+      } else if (error.code === 'ECONNABORTED') {
+        throw new Error('Request to Vettly timed out. Please try again.');
       }
-    );
-    vettlyUser = userRes.data;
-  } catch (error) {
-    console.error('Vettly userinfo error:', error);
-    throw new Error('Failed to fetch user information from Vettly');
+    }
+    
+    throw new Error(`Failed to verify candidate with Vettly: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
-  // Step 3: Find or create user in database
-  let user = await prisma.user.findUnique({
-    where: { email: vettlyUser.email },
-    include: { role: true },
-  });
-
-  if (!user) {
-    // Create new user from Vettly SSO
-    user = await prisma.user.create({
-      data: {
-        email: vettlyUser.email,
-        name: vettlyUser.name || vettlyUser.email.split('@')[0],
-        password: '', // SSO users don't have passwords
-        isVerified: true, // Vettly verified users are auto-verified
-        userType: 'USER',
+  // Step 2: Find or create user in database (using transaction for atomicity)
+  const { user, roleName } = await prisma.$transaction(async (tx) => {
+    let user = await tx.user.findUnique({
+      where: { email: vettlyUser.email  },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        userType: true,
+        roleId: true,
+        jobTitle: true,
       },
-      include: { role: true },
     });
-  } else {
-    // Update user if needed (e.g., name, picture)
-    if (vettlyUser.name && user.name !== vettlyUser.name) {
-      user = await prisma.user.update({
+
+    let roleName: string | undefined;
+
+    if (!user) {
+      // Create new user from Vettly SSO
+      user = await tx.user.create({
+        data: {
+          email: vettlyUser.email,
+          name: vettlyUser.name || vettlyUser.email.split('@')[0],
+          password: '', // SSO users don't have passwords
+          isVerified: vettlyUser.isVerified || true, // Use Vettly verification status
+          userType: 'USER',
+          jobTitle: vettlyUser.jobTitle || null,
+          vettlyUserId: vettlyUser.id, // Store Vettly's user ID
+          isSSOUser: true, // Mark as SSO user
+          lastSSOLoginAt: new Date(), // Track SSO login time 
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          userType: true,
+          roleId: true,
+          jobTitle: true,
+        },
+      });
+    } else {
+      // Update user if name, jobTitle, or Vettly user ID changed
+      const updateData: { 
+        name?: string; 
+        jobTitle?: string | null; 
+        isVerified?: boolean;
+        vettlyUserId?: string;
+        isSSOUser?: boolean;
+        lastSSOLoginAt?: Date;
+      } = {
+        // Always update SSO-related fields on login
+        isSSOUser: true,
+        lastSSOLoginAt: new Date(),
+      };
+      
+      if (vettlyUser.name && user.name !== vettlyUser.name) {
+        updateData.name = vettlyUser.name;
+      }
+      
+      if (vettlyUser.jobTitle !== undefined && user.jobTitle !== vettlyUser.jobTitle) {
+        updateData.jobTitle = vettlyUser.jobTitle || null;
+      }
+      
+      // Update verification status if provided
+      if (vettlyUser.isVerified !== undefined) {
+        updateData.isVerified = vettlyUser.isVerified;
+      }
+
+      // Update Vettly user ID if not set or changed
+      updateData.vettlyUserId = vettlyUser.id;
+
+      user = await tx.user.update({
         where: { id: user.id },
-        data: { name: vettlyUser.name },
-        include: { role: true },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          userType: true,
+          roleId: true,
+          jobTitle: true,
+        },
       });
     }
-  }
 
-  // Step 4: Generate JWT token
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('Server configuration error: JWT secret not set');
-  }
-
-  const token = jwt.sign(
-    { id: user.id, email: user.email, role: user.role?.name },
-    secret,
-    {
-      expiresIn: '7d',
+    // Fetch role name if roleId exists
+    if (user.roleId) {
+      const role = await tx.role.findUnique({
+        where: { id: user.roleId },
+        select: { name: true },
+      });
+      roleName = role?.name;
     }
-  );
+
+    return { user, roleName };
+  });
+
+  // Step 3: Generate JWT token
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    role: roleName,
+  });
 
   return {
     token,

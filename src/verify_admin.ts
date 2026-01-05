@@ -18,7 +18,7 @@ const fail = (msg: string, err: unknown) => {
     }
 };
 
-const BASE_URL = 'http://localhost:5000'; // Adjust port if needed
+const BASE_URL = process.env.API_URL || 'http://localhost:5001'; // Adjust port if needed
 // const ADMIN_TOKEN = '...'; // Needs to be obtained via login or hardcodded if possible
 // For this test, we assume we can login as an existing admin.
 // If no admin exists, we might need to seed one.

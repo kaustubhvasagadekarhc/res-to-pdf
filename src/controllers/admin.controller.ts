@@ -221,10 +221,19 @@ export const getAllActivities = async (req: Request, res: Response) => {
     try {
         const page = req.query.page ? parseInt(req.query.page as string) : 1;
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-        const type = req.query.type as string | undefined;
-
         const skip = (page - 1) * limit;
-        const { activities, total } = await activityService.getAllActivities(skip, limit, type);
+
+        const filters = {
+            type: req.query.type as string | undefined,
+            userId: req.query.userId as string | undefined,
+            statusCode: req.query.statusCode ? parseInt(req.query.statusCode as string) : undefined,
+            method: req.query.method as string | undefined,
+            startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+            endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
+            search: req.query.search as string | undefined,
+        };
+
+        const { activities, total } = await activityService.getAllActivities(skip, limit, filters);
 
         res.json({
             status: 'success',
@@ -238,6 +247,22 @@ export const getAllActivities = async (req: Request, res: Response) => {
         });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Failed to fetch activities' });
+    }
+};
+
+export const getActivityStats = async (req: Request, res: Response) => {
+    try {
+        const startDate = req.query.startDate 
+            ? new Date(req.query.startDate as string) 
+            : undefined;
+        const endDate = req.query.endDate 
+            ? new Date(req.query.endDate as string) 
+            : undefined;
+
+        const stats = await activityService.getActivityStats(startDate, endDate);
+        res.json({ status: 'success', data: stats });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: 'Failed to fetch activity stats' });
     }
 };
 

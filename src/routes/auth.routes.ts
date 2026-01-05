@@ -8,6 +8,8 @@ import {
   logout,
   me,
   vettlyCallback,
+  forgotPasswordController,
+  resetPasswordController,
 } from '../controllers/auth.controller';
 import { activityLogger } from '../middleware/activityLogger.middleware';
 import { authenticate } from '../middleware/auth.middleware';
@@ -173,5 +175,53 @@ router.get('/me',authenticate, me);
  *         description: Invalid authorization code
  */
 router.get('/vetlly/callback', activityLogger, vettlyCallback);
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Request password reset
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset code sent successfully
+ */
+router.post('/forgot-password', activityLogger, forgotPasswordController);
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password with OTP
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *               confirmPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ */
+router.post('/reset-password', activityLogger, resetPasswordController);
 
 export default router;
