@@ -588,7 +588,37 @@ export class PDFGeneratorService {
     if (!ym) return null;
     if (ym.toLowerCase() === 'present') return new Date();
 
-    // Try YYYY-MM
+    // Try month name format (e.g., "Jan 2020", "January 2020", "Jan - 2020", "January - 2020")
+    // Match month name followed by optional dash and spaces, then 4-digit year
+    const monthNameMatch = ym.match(/^([a-zA-Z]+)\s*-\s*(\d{4})$|^([a-zA-Z]+)\s+(\d{4})$/);
+    if (monthNameMatch) {
+      // Check if it's "month - yyyy" format (with dash)
+      const monthName = monthNameMatch[1] || monthNameMatch[3];
+      const year = parseInt(monthNameMatch[2] || monthNameMatch[4], 10);
+      
+      // Map month names to numbers (both short and full names)
+      const monthMap: { [key: string]: number } = {
+        'january': 0, 'jan': 0,
+        'february': 1, 'feb': 1,
+        'march': 2, 'mar': 2,
+        'april': 3, 'apr': 3,
+        'may': 4,
+        'june': 5, 'jun': 5,
+        'july': 6, 'jul': 6,
+        'august': 7, 'aug': 7,
+        'september': 8, 'sep': 8, 'sept': 8,
+        'october': 9, 'oct': 9,
+        'november': 10, 'nov': 10,
+        'december': 11, 'dec': 11,
+      };
+      
+      const monthIndex = monthMap[monthName.toLowerCase()];
+      if (monthIndex !== undefined && !isNaN(year)) {
+        return new Date(year, monthIndex, 1);
+      }
+    }
+
+    // Try YYYY-MM format (for backward compatibility)
     const parts = ym.split('-').map((n) => parseInt(n, 10));
     if (parts.length >= 2) {
       const [year, month] = parts;
@@ -597,7 +627,7 @@ export class PDFGeneratorService {
       }
     }
 
-    // Try YYYY
+    // Try YYYY only
     if (parts.length === 1 && !isNaN(parts[0])) {
       return new Date(parts[0], 0, 1);
     }
@@ -615,14 +645,41 @@ export class PDFGeneratorService {
 
     const formatYm = (ym?: string): string => {
       if (!ym) return '';
-      if (ym === 'Present') return 'Present';
-      const [y, m] = ym.split('-');
-      if (!y || !m) return ym;
-      const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        year: 'numeric',
-      });
+      if (ym.toLowerCase() === 'present') return 'Present';
+      
+      // Try to parse the date first
+      const parsed = this.parseYm(ym);
+      if (parsed) {
+        // Format as "month - yyyy" (e.g., "Jan - 2020")
+        const monthName = parsed.toLocaleString('en-US', { month: 'short' });
+        const year = parsed.getFullYear();
+        return `${monthName} - ${year}`;
+      }
+      
+      // If already in "month - yyyy" or "month yyyy" format, normalize it
+      const monthNameMatch = ym.match(/^([a-zA-Z]+)\s*-\s*(\d{4})$|^([a-zA-Z]+)\s+(\d{4})$/);
+      if (monthNameMatch) {
+        const monthName = (monthNameMatch[1] || monthNameMatch[3]).charAt(0).toUpperCase() + 
+                         (monthNameMatch[1] || monthNameMatch[3]).slice(1).toLowerCase();
+        const year = monthNameMatch[2] || monthNameMatch[4];
+        return `${monthName} - ${year}`;
+      }
+      
+      // Try YYYY-MM format (for backward compatibility)
+      const parts = ym.split('-');
+      if (parts.length >= 2) {
+        const [y, m] = parts;
+        const year = parseInt(y, 10);
+        const month = parseInt(m, 10);
+        if (!isNaN(year) && !isNaN(month)) {
+          const date = new Date(year, month - 1, 1);
+          const monthName = date.toLocaleString('en-US', { month: 'short' });
+          return `${monthName} - ${year}`;
+        }
+      }
+      
+      // If no format matches, return as-is
+      return ym;
     };
 
     if (from) fromOut = formatYm(from);

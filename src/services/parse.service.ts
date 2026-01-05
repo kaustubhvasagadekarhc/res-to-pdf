@@ -19,7 +19,7 @@ Critical Rules:
 - Return ONLY the JSON object. No explanations, no markdown, no code blocks — only valid JSON.
 - Use empty arrays [] for missing collections.
 - Use empty strings "" for missing text fields.
-- Normalize dates to ISO YYYY-MM format; if date cannot be determined, keep original or use empty string.
+- Normalize dates to "month - yyyy" format (e.g., "Jan - 2020" or "January - 2020"); if date cannot be determined, keep original or use empty string.
 - For all text fields, trim leading/trailing whitespace.
 - For list fields (skills, responsibilities, technologies), return arrays of trimmed strings.
 - Be conservative: if information is ambiguous or unclear, prefer empty string/array rather than inferring or guessing.
@@ -51,7 +51,7 @@ SPECIAL INSTRUCTIONS FOR KEY FIELDS:
 - Return as an array of strings, each skill/skillset clearly labeled.
 
 **education field:**
-- graduation_year: Extract as YYYY format (e.g., "2020"). If only season is given (e.g., "Summer 2020"), use just the year. If unknown, leave empty string.
+- graduation_year: Extract as "month - yyyy" format (e.g., "May - 2020" or "May - 2020"). If only year is given (e.g., "2020"), format as "Jan - 2020". If only season is given (e.g., "Summer 2020"), use "Jun - 2020" (approximate to mid-year). If unknown, leave empty string.
 - Include certifications or additional training if listed separately.
 
 **personal field:**
@@ -63,7 +63,8 @@ SPECIAL INSTRUCTIONS FOR KEY FIELDS:
 - location: Format as "City, State/Region, Country" (e.g., "San Francisco, CA, USA").
 
 **Validation & Output:**
-- Ensure all date fields follow YYYY-MM format consistently (period_from, period_to).
+- Ensure all date fields follow "month - yyyy" format consistently (period_from, period_to), e.g., "Jan - 2020" or "January - 2020".
+- Year must be exactly 4 digits (no more, no less).
 - period_to for current/ongoing roles: use "Present" instead of a date.
 - All arrays must be valid JSON (no trailing commas, properly quoted strings).
 - Validate JSON before returning — it must be parseable.
