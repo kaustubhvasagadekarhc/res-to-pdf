@@ -1,6 +1,10 @@
 import prisma from '../src/config/database';
+import bcrypt from 'bcrypt';
 
 async function main() {
+    console.log('Starting database seeding...\n');
+
+    // Step 1: Create Roles
     const roles = ['user', 'admin'];
 
     for (const role of roles) {
@@ -11,42 +15,131 @@ async function main() {
         });
     }
 
-    console.log('Seeding completed: Roles created/verified.');
+    console.log('✓ Roles created/verified.\n');
 
-    // Create Default Admin
-    const bcrypt = require('bcrypt'); // Use require for seed script usually, or import if ts-node handles it. 
-    // Since this is TS, we can use import potentially or just assume bcrypt is available. 
-    // But better to use conditional check or just create user.
+    // Step 2: Get role IDs for assignment
+    const userRole = await prisma.role.findUnique({ where: { name: 'user' } });
+    const adminRole = await prisma.role.findUnique({ where: { name: 'admin' } });
 
-    // Note: In typical seed file we might need to be careful with imports.
-    // Let's use simple logic.
+    // Step 3: Hash password once (all users will use "123456789")
+    const defaultPassword = '123456789';
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-    const adminEmail = 'admin@resumebuilder.com';
-    const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+    // Step 4: Define default users to create
+    const defaultUsers = [
+        // Admin users
+        {
+            email: 'admin@resumebuilder.com',
+            name: 'System Admin',
+            password: hashedPassword,
+            userType: 'ADMIN' as const,
+            isVerified: true,
+            jobTitle: 'System Administrator',
+            roleId: adminRole?.id,
+        },
+        {
+            email: 'admin2@resumebuilder.com',
+            name: 'Secondary Admin',
+            password: hashedPassword,
+            userType: 'ADMIN' as const,
+            isVerified: true,
+            jobTitle: 'Administrator',
+            roleId: adminRole?.id,
+        },
+        // Regular users
+        {
+            email: 'user1@example.com',
+            name: 'John Doe',
+            password: hashedPassword,
+            userType: 'USER' as const,
+            isVerified: true,
+            jobTitle: 'Software Engineer',
+            roleId: userRole?.id,
+        },
+        {
+            email: 'user2@example.com',
+            name: 'Jane Smith',
+            password: hashedPassword,
+            userType: 'USER' as const,
+            isVerified: true,
+            jobTitle: 'Product Manager',
+            roleId: userRole?.id,
+        },
+        {
+            email: 'user3@example.com',
+            name: 'Bob Johnson',
+            password: hashedPassword,
+            userType: 'USER' as const,
+            isVerified: true,
+            jobTitle: 'UX Designer',
+            roleId: userRole?.id,
+        },
+        {
+            email: 'user4@example.com',
+            name: 'Alice Williams',
+            password: hashedPassword,
+            userType: 'USER' as const,
+            isVerified: false, // Unverified user example
+            jobTitle: 'Data Analyst',
+            roleId: userRole?.id,
+        },
+        {
+            email: 'user5@example.com',
+            name: 'Charlie Brown',
+            password: hashedPassword,
+            userType: 'USER' as const,
+            isVerified: true,
+            jobTitle: null, // User without job title
+            roleId: userRole?.id,
+        },
+        {
+            email: 'test@example.com',
+            name: 'Test User',
+            password: hashedPassword,
+            userType: 'USER' as const,
+            isVerified: true,
+            jobTitle: 'QA Tester',
+            roleId: userRole?.id,
+        },
+    ];
 
-    if (!existingAdmin) {
-        const hashedPassword = await bcrypt.hash('123456789', 10);
-        await prisma.user.create({
-            data: {
-                email: adminEmail,
-                password: hashedPassword,
-                name: 'System Admin',
-                userType: 'ADMIN',
-                isVerified: true
-            }
+    // Step 5: Create users (skip if already exists)
+    let createdCount = 0;
+    let skippedCount = 0;
+
+    for (const userData of defaultUsers) {
+        const existingUser = await prisma.user.findUnique({
+            where: { email: userData.email },
         });
-        console.log('Default Admin user created: admin@resumebuilder.com / 123456789');
-    } else {
-        console.log('Admin user already exists.');
+
+        if (!existingUser) {
+            await prisma.user.create({
+                data: userData,
+            });
+            console.log(`✓ Created user: ${userData.email} (${userData.userType})`);
+            createdCount++;
+        } else {
+            console.log(`⊘ Skipped user: ${userData.email} (already exists)`);
+            skippedCount++;
+        }
     }
+
+    console.log('\n' + '='.repeat(50));
+    console.log('Seeding Summary:');
+    console.log(`  Roles: ${roles.length} created/verified`);
+    console.log(`  Users created: ${createdCount}`);
+    console.log(`  Users skipped: ${skippedCount}`);
+    console.log(`  Total users: ${defaultUsers.length}`);
+    console.log(`\n  Default password for all users: ${defaultPassword}`);
+    console.log('='.repeat(50));
+    console.log('\n✓ Database seeding completed successfully!');
 }
 
 main()
     .catch((e) => {
-        console.error('Seeding error:', e);
+        console.error('\n✗ Seeding error:', e);
         process.exit(1);
     })
     .finally(async () => {
         await prisma.$disconnect();
     });
-

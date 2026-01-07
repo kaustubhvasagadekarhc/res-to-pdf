@@ -45,7 +45,7 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
   // Validate configuration
   validateVettlyConfig();
 
-  const { apiBaseUrl } = config.vettly;
+  const { apiBaseUrl, apiKey } = config.vettly;
 
   // Step 1: Verify candidate with Vettly API using sso_code and sso_secret
   let vettlyUser: VettlyVerifyResponse['data'];
@@ -58,6 +58,7 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
           sso_secret: ssoSecret,
         },
         headers: {
+          'Authorization': `Bearer ${apiKey}`,
           'Accept': 'application/json',
         },
         timeout: 10000, // 10 second timeout
@@ -205,4 +206,3 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
     },
   };
 };
-

@@ -11,6 +11,7 @@ if (!JWT_SECRET) {
 
 // Vettly API configuration
 const VETLLY_API_BASE_URL = process.env.VETLLY_API_BASE_URL || 'http://localhost:5000';
+const VETLLY_API_KEY = process.env.VETLLY_API_KEY;
 
 export const config = {
   jwt: {
@@ -18,6 +19,7 @@ export const config = {
   },
   vettly: {
     apiBaseUrl: VETLLY_API_BASE_URL,
+    apiKey: VETLLY_API_KEY,
   },
 };
 

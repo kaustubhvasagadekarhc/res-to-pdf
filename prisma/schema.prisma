@@ -20,6 +20,7 @@ model User {
   password     String      @map("password_hash")
   jobTitle     String?
   isVerified   Boolean     @default(false)
+  isActive     Boolean     @default(true)
 
   // OTP fields for email verification
   otp          String?
