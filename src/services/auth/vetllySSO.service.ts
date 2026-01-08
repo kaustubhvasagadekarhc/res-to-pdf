@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import prisma from '../../config/database';
 import { config, validateVettlyConfig } from '../../config/env';
 import { generateToken } from '../../utils/jwt';
+import { encrypt } from '../../utils/encryption';
 
 interface VettlyVerifyResponse {
   success: boolean;
@@ -59,6 +60,7 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
         },
         headers: {
           'Authorization': `Bearer ${apiKey}`,
+          'X-API-Key': apiKey, // Fallback header for compatibility
           'Accept': 'application/json',
         },
         timeout: 10000, // 10 second timeout
@@ -94,7 +96,7 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
   }
 
   // Step 2: Find or create user in database (using transaction for atomicity)
-  const { user, roleName } = await prisma.$transaction(async (tx) => {
+  const { user, roleName } = await prisma.$transaction(async (tx: any) => {
     let user = await tx.user.findUnique({
       where: { email: vettlyUser.email  },
       select: {
@@ -121,7 +123,9 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
           jobTitle: vettlyUser.jobTitle || null,
           vettlyUserId: vettlyUser.id, // Store Vettly's user ID
           isSSOUser: true, // Mark as SSO user
-          lastSSOLoginAt: new Date(), // Track SSO login time 
+          lastSSOLoginAt: new Date(), // Track SSO login time
+          vettlySsoCode: ssoCode, // Store sso_code for future use
+          vettlySsoSecret: encrypt(ssoSecret), // Store encrypted sso_secret for future use
         },
         select: {
           id: true,
@@ -141,10 +145,14 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
         vettlyUserId?: string;
         isSSOUser?: boolean;
         lastSSOLoginAt?: Date;
+        vettlySsoCode?: string;
+        vettlySsoSecret?: string;
       } = {
         // Always update SSO-related fields on login
         isSSOUser: true,
         lastSSOLoginAt: new Date(),
+        vettlySsoCode: ssoCode, // Update sso_code
+        vettlySsoSecret: encrypt(ssoSecret), // Update encrypted sso_secret
       };
       
       if (vettlyUser.name && user.name !== vettlyUser.name) {
