@@ -212,6 +212,10 @@ export const activityLogger = async (req: Request, res: Response, next: NextFunc
 
     // Hook into response finish
     res.on('finish', () => {
+        // Allow controllers to opt-out when they perform custom logging
+        if (res.locals && (res.locals as any).skipActivityLog) {
+            return;
+        }
         const duration = Date.now() - startTime;
         const path = req.originalUrl.split('?')[0];
         const method = req.method;

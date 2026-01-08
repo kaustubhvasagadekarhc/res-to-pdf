@@ -93,10 +93,53 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
     throw new Error(`Failed to verify candidate with Vettly: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
-  // Step 2: Find or create user in database (using transaction for atomicity)
+  // Step 2: Find or create user in database using upsert (atomic operation)
   const { user, roleName } = await prisma.$transaction(async (tx) => {
-    let user = await tx.user.findUnique({
-      where: { email: vettlyUser.email  },
+    // Build update data object
+    const updateData: {
+      isSSOUser: boolean;
+      lastSSOLoginAt: Date;
+      vettlyUserId: string;
+      name?: string;
+      jobTitle?: string | null;
+      isVerified?: boolean;
+    } = {
+      // Always update SSO-related fields on login
+      isSSOUser: true,
+      lastSSOLoginAt: new Date(),
+      vettlyUserId: vettlyUser.id,
+    };
+
+    // Update name if provided
+    if (vettlyUser.name) {
+      updateData.name = vettlyUser.name;
+    }
+
+    // Update jobTitle if provided
+    if (vettlyUser.jobTitle !== undefined) {
+      updateData.jobTitle = vettlyUser.jobTitle || null;
+    }
+
+    // Update verification status if provided
+    if (vettlyUser.isVerified !== undefined) {
+      updateData.isVerified = vettlyUser.isVerified;
+    }
+
+    // Use upsert to create or update user in a single atomic operation
+    const user = await tx.user.upsert({
+      where: { email: vettlyUser.email },
+      create: {
+        email: vettlyUser.email,
+        name: vettlyUser.name || vettlyUser.email.split('@')[0],
+        password: '', // SSO users don't have passwords
+        isVerified: vettlyUser.isVerified || true, // Use Vettly verification status
+        userType: 'USER',
+        jobTitle: vettlyUser.jobTitle || null,
+        vettlyUserId: vettlyUser.id, // Store Vettly's user ID
+        isSSOUser: true, // Mark as SSO user
+        lastSSOLoginAt: new Date(), // Track SSO login time
+      },
+      update: updateData,
       select: {
         id: true,
         email: true,
@@ -107,77 +150,8 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
       },
     });
 
-    let roleName: string | undefined;
-
-    if (!user) {
-      // Create new user from Vettly SSO
-      user = await tx.user.create({
-        data: {
-          email: vettlyUser.email,
-          name: vettlyUser.name || vettlyUser.email.split('@')[0],
-          password: '', // SSO users don't have passwords
-          isVerified: vettlyUser.isVerified || true, // Use Vettly verification status
-          userType: 'USER',
-          jobTitle: vettlyUser.jobTitle || null,
-          vettlyUserId: vettlyUser.id, // Store Vettly's user ID
-          isSSOUser: true, // Mark as SSO user
-          lastSSOLoginAt: new Date(), // Track SSO login time 
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          userType: true,
-          roleId: true,
-          jobTitle: true,
-        },
-      });
-    } else {
-      // Update user if name, jobTitle, or Vettly user ID changed
-      const updateData: { 
-        name?: string; 
-        jobTitle?: string | null; 
-        isVerified?: boolean;
-        vettlyUserId?: string;
-        isSSOUser?: boolean;
-        lastSSOLoginAt?: Date;
-      } = {
-        // Always update SSO-related fields on login
-        isSSOUser: true,
-        lastSSOLoginAt: new Date(),
-      };
-      
-      if (vettlyUser.name && user.name !== vettlyUser.name) {
-        updateData.name = vettlyUser.name;
-      }
-      
-      if (vettlyUser.jobTitle !== undefined && user.jobTitle !== vettlyUser.jobTitle) {
-        updateData.jobTitle = vettlyUser.jobTitle || null;
-      }
-      
-      // Update verification status if provided
-      if (vettlyUser.isVerified !== undefined) {
-        updateData.isVerified = vettlyUser.isVerified;
-      }
-
-      // Update Vettly user ID if not set or changed
-      updateData.vettlyUserId = vettlyUser.id;
-
-      user = await tx.user.update({
-        where: { id: user.id },
-        data: updateData,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          userType: true,
-          roleId: true,
-          jobTitle: true,
-        },
-      });
-    }
-
     // Fetch role name if roleId exists
+    let roleName: string | undefined;
     if (user.roleId) {
       const role = await tx.role.findUnique({
         where: { id: user.roleId },
