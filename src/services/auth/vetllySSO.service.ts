@@ -186,6 +186,7 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
     }
 
     // Fetch role name if roleId exists
+    let roleName: string | undefined;
     if (user.roleId) {
       const role = await tx.role.findUnique({
         where: { id: user.roleId },

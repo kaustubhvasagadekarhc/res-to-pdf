@@ -85,7 +85,8 @@ export const deleteResume = async (req: Request, res: Response) => {
       where: { id }
     });
     console.log("resume deleted", resume);
-    // Log activity
+    // Log activity (skip generic middleware log to avoid duplicates)
+    res.locals.skipActivityLog = true;
     await activityService.logActivity(
       userId,
       'DELETE_RESUME',
@@ -146,7 +147,8 @@ export const renameResume = async (req: Request, res: Response) => {
       data: { fileName: newFileName }
     });
 
-    // Log activity
+    // Log activity (skip generic middleware log to avoid duplicates)
+    res.locals.skipActivityLog = true;
     await activityService.logActivity(
       userId,
       'RENAME_RESUME',

@@ -57,13 +57,26 @@ export const getUserById = async (req: Request, res: Response) => {
 export const deleteUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        
+        // Get user email before deletion for activity log
+        const userToDelete = await adminService.getUserById(id);
+        if (!userToDelete) {
+            res.status(404).json({ status: 'error', message: 'User not found' });
+            return;
+        }
+
+        const userEmail = userToDelete.email;
+        
+        // Delete the user
         await adminService.deleteUser(id);
 
+        // Use explicit activity log and skip generic middleware log to avoid duplicates
+        res.locals.skipActivityLog = true;
         await activityService.logActivity(
             req.user?.id || null,
             'ADMIN_DELETE_USER',
-            `Admin deleted user ${id}`,
-            { targetUserId: id }
+            `Admin deleted user ${userEmail}`,
+            { targetUserId: id, targetUserEmail: userEmail }
         );
         res.json({ status: 'success', message: 'User deleted successfully' });
     } catch (error) {
@@ -83,6 +96,8 @@ export const updateUserRole = async (req: Request, res: Response) => {
 
         const user = await adminService.updateUserRole(id, userType);
 
+        // Use explicit activity log and skip generic middleware log to avoid duplicates
+        res.locals.skipActivityLog = true;
         await activityService.logActivity(
             req.user?.id || null,
             'ADMIN_UPDATE_ROLE',
@@ -103,6 +118,8 @@ export const verifyUser = async (req: Request, res: Response) => {
 
         const user = await adminService.verifyUser(id, isVerified);
 
+        // Use explicit activity log and skip generic middleware log to avoid duplicates
+        res.locals.skipActivityLog = true;
         await activityService.logActivity(
             req.user?.id || null,
             'ADMIN_VERIFY_USER',
@@ -144,6 +161,8 @@ export const inviteUser = async (req: Request, res: Response) => {
         // Create user
         const newUser = await adminService.inviteUser(email, name, tempPassword);
 
+        // Use explicit activity log and skip generic middleware log to avoid duplicates
+        res.locals.skipActivityLog = true;
         await activityService.logActivity(
             req.user?.id || null,
             'ADMIN_INVITE_USER',
@@ -184,6 +203,8 @@ export const parseResume = async (req: Request, res: Response) => {
         // Parse without creating a Resume record yet
         const parsedData = await parseService.parseResume(uploaded.fileUrl, undefined);
 
+        // Use explicit activity log and skip generic middleware log to avoid duplicates
+        res.locals.skipActivityLog = true;
         await activityService.logActivity(
             req.user?.id || null,
             'ADMIN_PARSE_RESUME',
@@ -280,6 +301,8 @@ export const updateSettings = async (req: Request, res: Response) => {
     try {
         const settings = await settingsService.updateSettings(req.body);
 
+        // Use explicit activity log and skip generic middleware log to avoid duplicates
+        res.locals.skipActivityLog = true;
         await activityService.logActivity(
             req.user?.id || null,
             'ADMIN_UPDATE_SETTINGS',
