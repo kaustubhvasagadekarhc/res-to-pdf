@@ -34,6 +34,8 @@ model User {
   vettlyUserId              String?   @unique @map("vettly_user_id")
   isSSOUser                 Boolean   @default(false) @map("is_sso_user")
   lastSSOLoginAt            DateTime? @map("last_sso_login_at")
+  vettlySsoCode             String?   @map("vettly_sso_code")
+  vettlySsoSecret           String?   @map("vettly_sso_secret")
 
   userType     UserType    // USER or ADMIN 
 

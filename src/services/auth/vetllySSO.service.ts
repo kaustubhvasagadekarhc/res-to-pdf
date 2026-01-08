@@ -1,7 +1,9 @@
 import axios, { AxiosError } from 'axios';
+import { Prisma } from '@prisma/client';
 import prisma from '../../config/database';
 import { config, validateVettlyConfig } from '../../config/env';
 import { generateToken } from '../../utils/jwt';
+import { encrypt } from '../../utils/encryption';
 
 interface VettlyVerifyResponse {
   success: boolean;
@@ -46,6 +48,12 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
   validateVettlyConfig();
 
   const { apiBaseUrl, apiKey } = config.vettly;
+  
+  // Ensure API key is trimmed and valid
+  const trimmedApiKey = apiKey?.trim();
+  if (!trimmedApiKey) {
+    throw new Error('VETLLY_API_KEY is missing or empty. Please check your .env file.');
+  }
 
   // Step 1: Verify candidate with Vettly API using sso_code and sso_secret
   let vettlyUser: VettlyVerifyResponse['data'];
@@ -58,7 +66,8 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
           sso_secret: ssoSecret,
         },
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${trimmedApiKey}`,
+          'X-API-Key': trimmedApiKey, // Fallback header for compatibility
           'Accept': 'application/json',
         },
         timeout: 10000, // 10 second timeout
@@ -73,73 +82,43 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
   } catch (error) {
     console.error('Vettly verification error:', error);
     
+    // Log API key status for debugging (without exposing the actual key)
+    console.error('API Key status:', {
+      apiKey: trimmedApiKey,
+      exists: !!trimmedApiKey,
+      length: trimmedApiKey?.length || 0,
+      startsWith: trimmedApiKey?.substring(0, 4) || 'N/A',
+    });
+
     // Provide more specific error messages
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<VettlyErrorResponse>;
       const status = axiosError.response?.status;
       const errorData = axiosError.response?.data;
-      
+
       if (status === 400) {
         throw new Error(errorData?.message || 'Missing or invalid query parameters');
       } else if (status === 401) {
-        throw new Error(errorData?.message || 'Invalid SSO code or secret');
+        // Enhanced error message for API key issues
+        const errorMsg = errorData?.message || 'Invalid API key';
+        if (errorMsg.toLowerCase().includes('api key')) {
+          throw new Error(`${errorMsg}. Please verify VETLLY_API_KEY in your .env file is correct and has no extra spaces.`);
+        }
+        throw new Error(errorMsg || 'Invalid SSO code or secret');
       } else if (status && status >= 500) {
         throw new Error(errorData?.message || 'Vettly service unavailable');
       } else if (error.code === 'ECONNABORTED') {
         throw new Error('Request to Vettly timed out. Please try again.');
       }
     }
-    
+
     throw new Error(`Failed to verify candidate with Vettly: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
-  // Step 2: Find or create user in database using upsert (atomic operation)
-  const { user, roleName } = await prisma.$transaction(async (tx) => {
-    // Build update data object
-    const updateData: {
-      isSSOUser: boolean;
-      lastSSOLoginAt: Date;
-      vettlyUserId: string;
-      name?: string;
-      jobTitle?: string | null;
-      isVerified?: boolean;
-    } = {
-      // Always update SSO-related fields on login
-      isSSOUser: true,
-      lastSSOLoginAt: new Date(),
-      vettlyUserId: vettlyUser.id,
-    };
-
-    // Update name if provided
-    if (vettlyUser.name) {
-      updateData.name = vettlyUser.name;
-    }
-
-    // Update jobTitle if provided
-    if (vettlyUser.jobTitle !== undefined) {
-      updateData.jobTitle = vettlyUser.jobTitle || null;
-    }
-
-    // Update verification status if provided
-    if (vettlyUser.isVerified !== undefined) {
-      updateData.isVerified = vettlyUser.isVerified;
-    }
-
-    // Use upsert to create or update user in a single atomic operation
-    const user = await tx.user.upsert({
-      where: { email: vettlyUser.email },
-      create: {
-        email: vettlyUser.email,
-        name: vettlyUser.name || vettlyUser.email.split('@')[0],
-        password: '', // SSO users don't have passwords
-        isVerified: vettlyUser.isVerified || true, // Use Vettly verification status
-        userType: 'USER',
-        jobTitle: vettlyUser.jobTitle || null,
-        vettlyUserId: vettlyUser.id, // Store Vettly's user ID
-        isSSOUser: true, // Mark as SSO user
-        lastSSOLoginAt: new Date(), // Track SSO login time
-      },
-      update: updateData,
+  // Step 2: Find or create user in database (using transaction for atomicity)
+  const { user, roleName } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    let user = await tx.user.findUnique({
+      where: { email: vettlyUser.email  },
       select: {
         id: true,
         email: true,
@@ -150,8 +129,83 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
       },
     });
 
-    // Fetch role name if roleId exists
     let roleName: string | undefined;
+
+    if (!user) {
+      // Create new user from Vettly SSO
+      user = await tx.user.create({
+        data: {
+          email: vettlyUser.email,
+          name: vettlyUser.name || vettlyUser.email.split('@')[0],
+          password: '', // SSO users don't have passwords
+          isVerified: vettlyUser.isVerified || true, // Use Vettly verification status
+          userType: 'USER',
+          jobTitle: vettlyUser.jobTitle || null,
+          vettlyUserId: vettlyUser.id, // Store Vettly's user ID
+          isSSOUser: true, // Mark as SSO user
+          lastSSOLoginAt: new Date(), // Track SSO login time
+          vettlySsoCode: ssoCode, // Store sso_code for future use
+          vettlySsoSecret: encrypt(ssoSecret), // Store encrypted sso_secret for future use
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          userType: true,
+          roleId: true,
+          jobTitle: true,
+        },
+      });
+    } else {
+      // Update user if name, jobTitle, or Vettly user ID changed
+      const updateData: { 
+        name?: string; 
+        jobTitle?: string | null; 
+        isVerified?: boolean;
+        vettlyUserId?: string;
+        isSSOUser?: boolean;
+        lastSSOLoginAt?: Date;
+        vettlySsoCode?: string;
+        vettlySsoSecret?: string;
+      } = {
+        // Always update SSO-related fields on login
+        isSSOUser: true,
+        lastSSOLoginAt: new Date(),
+        vettlySsoCode: ssoCode, // Update sso_code
+        vettlySsoSecret: encrypt(ssoSecret), // Update encrypted sso_secret
+      };
+
+      if (vettlyUser.name && user.name !== vettlyUser.name) {
+        updateData.name = vettlyUser.name;
+      }
+
+      if (vettlyUser.jobTitle !== undefined && user.jobTitle !== vettlyUser.jobTitle) {
+        updateData.jobTitle = vettlyUser.jobTitle || null;
+      }
+
+      // Update verification status if provided
+      if (vettlyUser.isVerified !== undefined) {
+        updateData.isVerified = vettlyUser.isVerified;
+      }
+
+      // Update Vettly user ID if not set or changed
+      updateData.vettlyUserId = vettlyUser.id;
+
+      user = await tx.user.update({
+        where: { id: user.id },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          userType: true,
+          roleId: true,
+          jobTitle: true,
+        },
+      });
+    }
+
+    // Fetch role name if roleId exists
     if (user.roleId) {
       const role = await tx.role.findUnique({
         where: { id: user.roleId },
@@ -180,3 +234,5 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
     },
   };
 };
+
+ 
