@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { Prisma } from '@prisma/client';
 import prisma from '../../config/database';
 import { config, validateVettlyConfig } from '../../config/env';
 import { generateToken } from '../../utils/jwt';
@@ -47,6 +48,12 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
   validateVettlyConfig();
 
   const { apiBaseUrl, apiKey } = config.vettly;
+  
+  // Ensure API key is trimmed and valid
+  const trimmedApiKey = apiKey?.trim();
+  if (!trimmedApiKey) {
+    throw new Error('VETLLY_API_KEY is missing or empty. Please check your .env file.');
+  }
 
   // Step 1: Verify candidate with Vettly API using sso_code and sso_secret
   let vettlyUser: VettlyVerifyResponse['data'];
@@ -59,8 +66,8 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
           sso_secret: ssoSecret,
         },
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'X-API-Key': apiKey, // Fallback header for compatibility
+          'Authorization': `Bearer ${trimmedApiKey}`,
+          'X-API-Key': trimmedApiKey, // Fallback header for compatibility
           'Accept': 'application/json',
         },
         timeout: 10000, // 10 second timeout
@@ -75,28 +82,41 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
   } catch (error) {
     console.error('Vettly verification error:', error);
     
+    // Log API key status for debugging (without exposing the actual key)
+    console.error('API Key status:', {
+      apiKey: trimmedApiKey,
+      exists: !!trimmedApiKey,
+      length: trimmedApiKey?.length || 0,
+      startsWith: trimmedApiKey?.substring(0, 4) || 'N/A',
+    });
+
     // Provide more specific error messages
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<VettlyErrorResponse>;
       const status = axiosError.response?.status;
       const errorData = axiosError.response?.data;
-      
+
       if (status === 400) {
         throw new Error(errorData?.message || 'Missing or invalid query parameters');
       } else if (status === 401) {
-        throw new Error(errorData?.message || 'Invalid SSO code or secret');
+        // Enhanced error message for API key issues
+        const errorMsg = errorData?.message || 'Invalid API key';
+        if (errorMsg.toLowerCase().includes('api key')) {
+          throw new Error(`${errorMsg}. Please verify VETLLY_API_KEY in your .env file is correct and has no extra spaces.`);
+        }
+        throw new Error(errorMsg || 'Invalid SSO code or secret');
       } else if (status && status >= 500) {
         throw new Error(errorData?.message || 'Vettly service unavailable');
       } else if (error.code === 'ECONNABORTED') {
         throw new Error('Request to Vettly timed out. Please try again.');
       }
     }
-    
+
     throw new Error(`Failed to verify candidate with Vettly: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
   // Step 2: Find or create user in database (using transaction for atomicity)
-  const { user, roleName } = await prisma.$transaction(async (tx: any) => {
+  const { user, roleName } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     let user = await tx.user.findUnique({
       where: { email: vettlyUser.email  },
       select: {
@@ -154,15 +174,15 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
         vettlySsoCode: ssoCode, // Update sso_code
         vettlySsoSecret: encrypt(ssoSecret), // Update encrypted sso_secret
       };
-      
+
       if (vettlyUser.name && user.name !== vettlyUser.name) {
         updateData.name = vettlyUser.name;
       }
-      
+
       if (vettlyUser.jobTitle !== undefined && user.jobTitle !== vettlyUser.jobTitle) {
         updateData.jobTitle = vettlyUser.jobTitle || null;
       }
-      
+
       // Update verification status if provided
       if (vettlyUser.isVerified !== undefined) {
         updateData.isVerified = vettlyUser.isVerified;
@@ -186,7 +206,6 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
     }
 
     // Fetch role name if roleId exists
-    let roleName: string | undefined;
     if (user.roleId) {
       const role = await tx.role.findUnique({
         where: { id: user.roleId },
@@ -215,3 +234,5 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
     },
   };
 };
+
+ 

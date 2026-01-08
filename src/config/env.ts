@@ -11,7 +11,7 @@ if (!JWT_SECRET) {
 
 // Vettly API configuration
 const VETLLY_API_BASE_URL = process.env.VETLLY_API_BASE_URL || 'http://localhost:5000';
-const VETLLY_API_KEY = process.env.VETLLY_API_KEY;
+const VETLLY_API_KEY = process.env.VETLLY_API_KEY?.trim();
 
 export const config = {
   jwt: {
@@ -27,6 +27,9 @@ export const config = {
 export const validateVettlyConfig = () => {
   if (!config.vettly.apiBaseUrl) {
     throw new Error('VETLLY_API_BASE_URL environment variable is required for SSO');
+  }
+  if (!config.vettly.apiKey || config.vettly.apiKey.trim() === '') {
+    throw new Error('VETLLY_API_KEY environment variable is required for SSO. Please check your .env file.');
   }
 };
 
