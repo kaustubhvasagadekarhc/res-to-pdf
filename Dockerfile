@@ -17,7 +17,7 @@ COPY prisma.config.ts ./prisma.config.ts
 RUN npm install --ignore-scripts
 RUN npm  install dotenv
 # Generate Prisma client with dummy URL (only needed for TypeScript compilation)
-RUN DATABASE_URL="postgresql://dummy:dummy@dummy:5432/dummy" npx prisma generate
+RUN DATABASE_URL="postgresql://postgres:root@localhost:5431/postgres?schema=public" npx prisma generate
 
 # Copy source code
 COPY . .
