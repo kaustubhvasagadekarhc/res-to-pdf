@@ -1,5 +1,7 @@
-import prisma from '../src/config/database';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+
+const prisma = new PrismaClient();
 
 async function main() {
     console.log('Starting database seeding...\n');
@@ -54,42 +56,6 @@ async function main() {
             userType: 'USER' as const,
             isVerified: true,
             jobTitle: 'Software Engineer',
-            roleId: userRole?.id,
-        },
-        {
-            email: 'user2@example.com',
-            name: 'Jane Smith',
-            password: hashedPassword,
-            userType: 'USER' as const,
-            isVerified: true,
-            jobTitle: 'Product Manager',
-            roleId: userRole?.id,
-        },
-        {
-            email: 'user3@example.com',
-            name: 'Bob Johnson',
-            password: hashedPassword,
-            userType: 'USER' as const,
-            isVerified: true,
-            jobTitle: 'UX Designer',
-            roleId: userRole?.id,
-        },
-        {
-            email: 'user4@example.com',
-            name: 'Alice Williams',
-            password: hashedPassword,
-            userType: 'USER' as const,
-            isVerified: false, // Unverified user example
-            jobTitle: 'Data Analyst',
-            roleId: userRole?.id,
-        },
-        {
-            email: 'user5@example.com',
-            name: 'Charlie Brown',
-            password: hashedPassword,
-            userType: 'USER' as const,
-            isVerified: true,
-            jobTitle: null, // User without job title
             roleId: userRole?.id,
         },
         {
