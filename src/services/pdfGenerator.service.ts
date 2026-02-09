@@ -33,6 +33,7 @@ export interface WorkExperience {
   period_from?: string;
   period_to?: string;
   duration?: string;
+  responsibilities?: string[];
   projects?: Project[];
 }
 
@@ -104,6 +105,9 @@ export class PDFGeneratorService {
   }
 
   private async generatePDFBuffer(resume: ResumeData, logoPath?: string): Promise<Buffer> {
+    console.log('generatePDFBuffer called');
+    console.log('Resume Work Experience Raw:', JSON.stringify(resume.work_experience, null, 2));
+
     const defaultLogoPath = path.join(__dirname, '../assets/logo.png');
     const finalLogoPath = logoPath || defaultLogoPath;
 
@@ -282,11 +286,12 @@ export class PDFGeneratorService {
     // =====================================================================
 
     const exps = resume.work_experience ? this.sortAndFilterWork(resume.work_experience) : [];
-
+    
     if (exps.length > 0) {
       sectionHeader('Work Experience');
 
       exps.forEach((exp, idx) => {
+         doc.moveDown(0.4);
         const line = this.buildExperienceTitle(exp);
 
         doc.font('Helvetica').fontSize(12).text(line, {
@@ -295,8 +300,24 @@ export class PDFGeneratorService {
 
         doc.moveDown(0.4);
 
+        if (exp.responsibilities && exp.responsibilities.length > 0) {
+          doc.font('Helvetica-Bold').fontSize(10).text('Responsibilities:');
+          doc.moveDown(0.2);
+          doc.font('Helvetica').fontSize(10);
+
+          exp.responsibilities.forEach((r) => {
+            const t = r.trim();
+            if (!t) return;
+            doc.text(`• ${t}`, {
+              width: contentWidth,
+            });
+          });
+          doc.moveDown(0.4);
+        }
+
         (exp.projects ?? []).forEach((project) => {
           if (project.name) {
+            doc.moveDown(0.6);
             doc.moveDown(0.6);
             doc.font('Helvetica-Bold').fontSize(12).text(`Project: ${project.name}`, {
               width: contentWidth,
@@ -518,12 +539,12 @@ export class PDFGeneratorService {
 
       // Store complete JSON as single row in ResumeSection
       // Use pdfName if provided, otherwise fallback to designation-based name
-      const pdfFileName = resumeData.pdfName 
+      const pdfFileName = resumeData.pdfName
         ? `${resumeData.pdfName}.pdf`
-        : resumeData.personal?.designation 
+        : resumeData.personal?.designation
           ? `${resumeData.personal.designation}-resume.pdf`
           : `resume-${Date.now()}.pdf`;
-      
+
       await prisma.resumeVersions.create({
         data: {
           resumeId: resume.id,
@@ -558,6 +579,8 @@ export class PDFGeneratorService {
   }
 
   private sortAndFilterWork(exps: WorkExperience[]): WorkExperience[] {
+    console.log('sortAndFilterWork called with:', JSON.stringify(exps, null, 2));
+
     const currentDate = new Date();
 
     // Filter out future experiences
@@ -565,11 +588,20 @@ export class PDFGeneratorService {
       const from = this.parseYm(e.period_from);
       const to = e.period_to === 'Present' ? new Date() : this.parseYm(e.period_to);
 
-      if (!from) return false;
+      if (!from) {
+        console.log('Skipping due to invalid from date:', e.period_from);
+        return false;
+      }
 
       // Include only if start date is in the past
       // and end date is in the past or Present
-      return from <= currentDate && (!to || to <= currentDate || e.period_to === 'Present');
+      const isPastStart = from <= currentDate;
+      const isPastEndOrPresent = !to || to <= currentDate || e.period_to === 'Present';
+
+      console.log(`Experience: ${e.company} | From: ${from} | To: ${to}`);
+      console.log(`isPastStart: ${isPastStart}, isPastEndOrPresent: ${isPastEndOrPresent}`);
+
+      return isPastStart && isPastEndOrPresent;
     });
 
     // Sort by start date (most recent first)
@@ -581,10 +613,12 @@ export class PDFGeneratorService {
       return fromB.getTime() - fromA.getTime();
     });
 
+    console.log('sortAndFilterWork returning:', JSON.stringify(filtered, null, 2));
     return filtered;
   }
 
   private parseYm(ym?: string): Date | null {
+    console.log('parseYm input:', ym);
     if (!ym) return null;
     if (ym.toLowerCase() === 'present') return new Date();
 
