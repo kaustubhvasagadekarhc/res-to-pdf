@@ -10,4 +10,18 @@ const prisma = new PrismaClient({
   log: ["error", "warn"]
 });
 
+/**
+ * Check database connection by running a simple query
+ */
+export async function checkDatabaseConnection(): Promise<void> {
+  try {
+    await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
+    console.log("✓ Database connected successfully");
+  } catch (error) {
+    console.error("✗ Database connection failed:", error instanceof Error ? error.message : error);
+    throw error;
+  }
+}
+
 export default prisma;
