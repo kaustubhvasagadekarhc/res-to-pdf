@@ -46,9 +46,11 @@ SPECIAL INSTRUCTIONS FOR KEY FIELDS:
 - De-duplicate projects that appear in both work_experience and the standalone projects section.
 
 **skills field:**
-- Extract all technical skills, programming languages, frameworks, tools.
-- Organize by category if evident (e.g., "JavaScript, TypeScript, React" or "AWS, Docker, Kubernetes").
-- Return as an array of strings, each skill/skillset clearly labeled.
+- Extract all technical skills, programming languages, frameworks, tools, databases, operating systems, IDEs, and servers.
+- Categorize skills into these groups: "Technologies", "Languages", "Tools", "Databases", "Operating Systems", "IDE's", "Application/Web Server's".
+- Only include categories that have skills. Omit empty categories entirely.
+- Return as an object mapping category names to arrays of strings.
+- Example: {"Technologies": ["React", "Node.js"], "Languages": ["JavaScript", "Python"], "Databases": ["PostgreSQL", "MongoDB"]}
 
 **education field:**
 - graduation_year: Extract as YYYY format (e.g., "2020"). If only season is given (e.g., "Summer 2020"), use just the year. If unknown, leave empty string.
@@ -80,7 +82,7 @@ Required JSON structure (do not modify):
     "marital_status": ""
   },
   "summary": "",
-  "skills": [],
+  "skills": {},
   "work_experience": [{
     "company": "",
     "position": "",

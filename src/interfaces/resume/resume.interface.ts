@@ -57,7 +57,7 @@ export interface ParsedProject {
 export interface ParsedResume {
     personal: ParsedPersonal;
     summary: string;
-    skills: string[];
+    skills: Record<string, string[]> | string[];
     work_experience: ParsedWorkExperience[];
     education: ParsedEducation[];
     projects: ParsedProject[];

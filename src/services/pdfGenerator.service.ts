@@ -18,9 +18,7 @@ export interface ResumeData {
   };
   professionalSummary?: string[];
   summary?: string;
-  skills?: {
-    technical?: string[];
-  };
+  skills?: Record<string, string[]> | string[] | { technical?: string[] };
   work_experience?: WorkExperience[];
   education?: Education[];
   projects?: Project[];
@@ -265,19 +263,48 @@ export class PDFGeneratorService {
     // =====================================================================
     // SKILL SET
     // =====================================================================
-    // =====================================================================
-    // SKILL SET
-    // =====================================================================
-    let technicalSkills: string[] = [];
+    let categorizedSkills: Record<string, string[]> = {};
     if (Array.isArray(resume.skills)) {
-      technicalSkills = resume.skills;
-    } else if (resume.skills?.technical) {
-      technicalSkills = resume.skills.technical;
+      const filtered = resume.skills.filter((s) => this.hasValue(s));
+      if (filtered.length > 0) {
+        categorizedSkills = { Technologies: filtered };
+      }
+    } else if (resume.skills && typeof resume.skills === 'object') {
+      if ('technical' in resume.skills && Array.isArray((resume.skills as { technical?: string[] }).technical)) {
+        const filtered = ((resume.skills as { technical?: string[] }).technical || []).filter((s) => this.hasValue(s));
+        if (filtered.length > 0) {
+          categorizedSkills = { Technologies: filtered };
+        }
+      } else {
+        const skillsObj = resume.skills as Record<string, string[]>;
+        for (const [key, value] of Object.entries(skillsObj)) {
+          if (Array.isArray(value)) {
+            const filtered = value.filter((s) => this.hasValue(s));
+            if (filtered.length > 0) {
+              categorizedSkills[key] = filtered;
+            }
+          }
+        }
+      }
     }
 
-    if (technicalSkills.length > 0 && technicalSkills.filter((x) => this.hasValue(x)).length > 0) {
+    const nonEmptyCategories = Object.entries(categorizedSkills);
+
+    if (nonEmptyCategories.length > 0) {
       sectionHeader('Skill Set');
-      doc.text(technicalSkills.filter((x) => this.hasValue(x)).join(', '), { width: contentWidth });
+
+      const labelWidth = 160;
+      const valueWidth = contentWidth - labelWidth;
+
+      nonEmptyCategories.forEach(([category, skills]) => {
+        const yPos = doc.y;
+        doc.font('Helvetica-Bold').fontSize(10)
+          .text(category + ':', leftX, yPos, { width: labelWidth });
+        doc.font('Helvetica').fontSize(10)
+          .text(skills.join(', '), leftX + labelWidth, yPos, { width: valueWidth });
+        doc.moveDown(0.4);
+      });
+
       doc.moveDown(0.3);
     }
 
