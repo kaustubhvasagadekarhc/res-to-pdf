@@ -16,9 +16,8 @@ export interface ResumeData {
     gender?: string;
     marital_status?: string;
   };
-  professionalSummary?: string[];
   summary?: string;
-  skills?: Record<string, string[]> | string[] | { technical?: string[] };
+  skills?: Record<string, string[]>;
   work_experience?: WorkExperience[];
   education?: Education[];
   projects?: Project[];
@@ -222,17 +221,17 @@ export class PDFGeneratorService {
       doc.moveDown(0.3);
     };
 
-    const bulletLines = (lines: string[]) => {
-      doc.font('Helvetica').fontSize(10);
-      lines.forEach((line) => {
-        const text = line.trim();
-        if (!text) return;
-        doc.text(`• ${text}`, {
-          width: contentWidth,
-          align: 'left',
-        });
-      });
-    };
+    // const bulletLines = (lines: string[]) => {
+    //   doc.font('Helvetica').fontSize(10);
+    //   lines.forEach((line) => {
+    //     const text = line.trim();
+    //     if (!text) return;
+    //     doc.text(`• ${text}`, {
+    //       width: contentWidth,
+    //       align: 'left',
+    //     });
+    //   });
+    // };
 
     const greySeparator = () => {
       const y = doc.y + 2;
@@ -249,40 +248,27 @@ export class PDFGeneratorService {
     // =====================================================================
     // PROFESSIONAL SUMMARY
     // =====================================================================
-    const summaryBullets: string[] =
-      resume.professionalSummary && resume.professionalSummary.length
-        ? resume.professionalSummary
-        : this.splitSummaryToBullets(resume.summary ?? '');
+    const summaryText = (resume.summary ?? '').trim();
 
-    if (summaryBullets.length > 0) {
+    if (summaryText.length > 0) {
       sectionHeader('Professional Summary');
-      bulletLines(summaryBullets);
+      doc.font('Helvetica').fontSize(10).text(summaryText, {
+        width: contentWidth,
+        align: 'justify',
+      });
       doc.moveDown(0.5);
     }
 
     // =====================================================================
     // SKILL SET
     // =====================================================================
-    let categorizedSkills: Record<string, string[]> = {};
-    if (Array.isArray(resume.skills)) {
-      const filtered = resume.skills.filter((s) => this.hasValue(s));
-      if (filtered.length > 0) {
-        categorizedSkills = { Technologies: filtered };
-      }
-    } else if (resume.skills && typeof resume.skills === 'object') {
-      if ('technical' in resume.skills && Array.isArray((resume.skills as { technical?: string[] }).technical)) {
-        const filtered = ((resume.skills as { technical?: string[] }).technical || []).filter((s) => this.hasValue(s));
-        if (filtered.length > 0) {
-          categorizedSkills = { Technologies: filtered };
-        }
-      } else {
-        const skillsObj = resume.skills as Record<string, string[]>;
-        for (const [key, value] of Object.entries(skillsObj)) {
-          if (Array.isArray(value)) {
-            const filtered = value.filter((s) => this.hasValue(s));
-            if (filtered.length > 0) {
-              categorizedSkills[key] = filtered;
-            }
+    const categorizedSkills: Record<string, string[]> = {};
+    if (resume.skills && typeof resume.skills === 'object') {
+      for (const [key, value] of Object.entries(resume.skills)) {
+        if (Array.isArray(value)) {
+          const filtered = value.filter((s) => this.hasValue(s));
+          if (filtered.length > 0) {
+            categorizedSkills[key] = filtered;
           }
         }
       }
@@ -594,16 +580,6 @@ export class PDFGeneratorService {
   // ---------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------
-
-  private splitSummaryToBullets(summary: string): string[] {
-    if (!summary) return [];
-    // Split by newline or bullet char, filter empties
-    const parts = summary
-      .split(/\n|•/g)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    return parts;
-  }
 
   private sortAndFilterWork(exps: WorkExperience[]): WorkExperience[] {
     console.log('sortAndFilterWork called with:', JSON.stringify(exps, null, 2));
