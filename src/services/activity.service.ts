@@ -21,6 +21,7 @@ export class ActivityService {
                 }
             });
         } catch (error) {
+            console.error('Failed to log activity:', error);
             // Don't throw to avoid disrupting the main flow
         }
     }

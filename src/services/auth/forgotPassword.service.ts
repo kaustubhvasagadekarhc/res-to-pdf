@@ -1,6 +1,8 @@
 import prisma from '../../config/database';
 import { sendPasswordResetOtpEmail } from '../email.service';
-import { generateOtp } from '../../utils/otp';
+
+const generateOtp = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
 export const forgotPassword = async (email: string) => {
   // Check if user exists in database
@@ -43,6 +45,7 @@ export const forgotPassword = async (email: string) => {
   try {
     await sendPasswordResetOtpEmail(email, otp);
   } catch (error) {
+    console.error('Failed to send password reset email:', error);
     // Clear OTP if email fails
     await prisma.user.update({
       where: { id: user.id },

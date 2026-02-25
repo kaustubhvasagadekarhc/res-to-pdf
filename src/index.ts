@@ -17,6 +17,7 @@ async function startServer() {
       console.log(`Backend running on port ${PORT}`);
     });
   } catch (error) {
+    console.error("Failed to start server due to database connection error");
     process.exit(1);
   }
 }

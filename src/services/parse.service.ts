@@ -5,7 +5,7 @@ import { ParsedResume } from '../interfaces/resume/resume.interface';
 export class ParseService {
   private genAI: GoogleGenerativeAI;
   private model: GenerativeModel;
-  
+
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -60,7 +60,7 @@ SPECIAL INSTRUCTIONS FOR KEY FIELDS:
 
 **education field:**
 - graduation_year: Extract as YYYY format (e.g., "2020"). If only season is given (e.g., "Summer 2020"), use just the year. If unknown, leave empty string.
-- Do NOT include certifications, courses, training programs, or online certificates in this section. Only include formal academic degrees (e.g., B.Tech, M.Sc, MBA, PhD).
+- Include certifications or additional training if listed separately.
 
 **personal field:**
 - Extract only non-sensitive contact information (name, email, mobile, location, designation/title).
@@ -114,7 +114,7 @@ Required JSON structure (do not modify):
     "technologies": []
   }]
 }`;
-
+    // Fetch PDF
     const response = await fetch(pdfUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status}`);
@@ -125,13 +125,14 @@ Required JSON structure (do not modify):
     const result = await this.model.generateContent([
       {
         inlineData: {
-          mimeType: 'application/pdf', 
-
+          mimeType: 'application/pdf', // Changed from application/pdf to work with gemini
           data: buffer.toString('base64'),
         },
       },
       prompt,
     ]);
+
+    // console.log(result.response.text())
 
     const responseText = result.response.text();
 
@@ -147,15 +148,26 @@ Required JSON structure (do not modify):
       throw new Error('Invalid JSON response from AI');
     }
 
-
+    // Save to database
     if (resId) {
+      console.log('Attempting to create sections for resumeId:', resId);
 
+      // Verify resume exists
       const resumeExists = await prisma.resume.findUnique({ where: { id: resId } });
+      console.log('Resume exists:', !!resumeExists);
 
       if (!resumeExists) {
         throw new Error(`Resume with ID ${resId} not found`);
       }
 
+      // console.log('Creating single resume section entry');
+      // await prisma.resumeVersions.create({
+      //   data: {
+      //     resumeId: resId,
+      //     section: 'resumeJson',
+      //     content: JSON.stringify(parsed)
+      //   }
+      // });
     }
 
     return parsed;

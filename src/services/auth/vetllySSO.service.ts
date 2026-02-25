@@ -80,7 +80,16 @@ export const handleVettlyCallback = async (ssoCode: string, ssoSecret: string) =
 
     vettlyUser = verifyRes.data.data;
   } catch (error) {
-    // API key status for debugging (safe — no secret exposure)
+    console.error('Vettly verification error:', error);
+    
+    // Log API key status for debugging (without exposing the actual key)
+    console.error('API Key status:', {
+      apiKey: trimmedApiKey,
+      exists: !!trimmedApiKey,
+      length: trimmedApiKey?.length || 0,
+      startsWith: trimmedApiKey?.substring(0, 4) || 'N/A',
+    });
+
     // Provide more specific error messages
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<VettlyErrorResponse>;

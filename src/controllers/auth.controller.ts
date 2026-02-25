@@ -8,6 +8,7 @@ import {
   resetPasswordSchema,
 } from '../schemas/auth.schema';
 import { loginUser } from '../services/auth/login.service';
+// import { getCurrentUser } from '../services/auth/me.service';
 import { registerUser } from '../services/auth/register.service';
 import { resendUserOtp } from '../services/auth/resendOtp.service';
 import { generateToken } from '../services/auth/token.service';
@@ -32,9 +33,11 @@ export const register = async (req: Request, res: Response) => {
   try {
     const setting = await prisma.systemSettings.findUnique({
       where: { id: 1 },
+      // select: { allowRegistration: true },
     });
 
     const allowRegistration: boolean = setting?.allowRegistration ?? false;
+    console.log('Allow registration:', allowRegistration);
     if (!allowRegistration) {
       throw new Error('Registration is not allowed');
     } else {
@@ -188,6 +191,7 @@ export const vettlyCallback = async (req: Request, res: Response) => {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'An error occurred';
+    console.error('Vettly SSO callback error:', error);
     res.status(400).json({ status: 'error', message });
   }
 };
@@ -203,6 +207,7 @@ export const forgotPasswordController = async (req: Request, res: Response) => {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'An error occurred';
+    console.error('Forgot password error:', error);
     res.status(400).json({ status: 'error', message });
   }
 };
@@ -218,6 +223,7 @@ export const resetPasswordController = async (req: Request, res: Response) => {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'An error occurred';
+    console.error('Reset password error:', error);
     res.status(400).json({ status: 'error', message });
   }
 };

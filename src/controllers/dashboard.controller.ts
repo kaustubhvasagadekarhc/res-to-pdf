@@ -84,6 +84,7 @@ export const deleteResume = async (req: Request, res: Response) => {
     await prisma.resumeVersions.delete({
       where: { id }
     });
+    console.log("resume deleted", resume);
     // Log activity (skip generic middleware log to avoid duplicates)
     res.locals.skipActivityLog = true;
     await activityService.logActivity(

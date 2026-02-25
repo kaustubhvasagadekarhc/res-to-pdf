@@ -54,6 +54,7 @@ router.post("/", activityLogger, upload.single("file"), async (req, res) => {
     return res.json(result);
 
   } catch (err: unknown) {
+    console.error("Upload+Parse Error:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return res.status(500).json({ error: message });
   }

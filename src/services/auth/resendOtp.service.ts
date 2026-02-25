@@ -1,6 +1,8 @@
 import prisma from "../../config/database";
 import { sendOtpEmail } from '../email.service';
-import { generateOtp } from '../../utils/otp';
+
+const generateOtp = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
 export const resendUserOtp = async (email: string) => {
   const user = await prisma.user.findUnique({ where: { email } });
