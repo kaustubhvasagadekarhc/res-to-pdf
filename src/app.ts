@@ -1,5 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import uploadRoutes from './routes/upload.routes';
 import pdfRoutes from './routes/pdf.routes';
@@ -11,13 +13,29 @@ import { authenticate } from './middleware/auth.middleware';
 import adminRoutes from './routes/admin.routes';
 import recommendationRoutes from './routes/recommendation.routes';
 import swaggerUi from 'swagger-ui-express';
-import { specs } from './config/swagger';
+import { specs } from './config/swagger'; 
+import { globalErrorHandler } from './middleware/errorHandler';
+import { generalLimiter } from './middleware/rateLimiter';
 
 const app = express();
 
+// Security headers
+app.use(helmet());
+
+// Request logging
+app.use(morgan('combined'));
+
+// Rate limiting
+app.use(generalLimiter);
+
+// CORS configuration
+const allowedOrigins = ['http://localhost:3000','http://localhost:3001', "https://res-to-pdf.vercel.app"];
+
+
+
 // CORS configuration for cookie-based authentication
 app.use(cors({
-  origin: ['http://localhost:3000','http://localhost:3001', "https://res-to-pdf.vercel.app"],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -61,5 +79,7 @@ app.get('/health', (req, res) => {
     pid: process.pid,
   });
 });
+
+app.use(globalErrorHandler);
 
 export default app;
