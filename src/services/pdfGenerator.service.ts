@@ -16,11 +16,8 @@ export interface ResumeData {
     gender?: string;
     marital_status?: string;
   };
-  professionalSummary?: string[];
   summary?: string;
-  skills?: {
-    technical?: string[];
-  };
+  skills?: Record<string, string[]>;
   work_experience?: WorkExperience[];
   education?: Education[];
   projects?: Project[];
@@ -105,15 +102,12 @@ export class PDFGeneratorService {
   }
 
   private async generatePDFBuffer(resume: ResumeData, logoPath?: string): Promise<Buffer> {
-    console.log('generatePDFBuffer called');
-    console.log('Resume Work Experience Raw:', JSON.stringify(resume.work_experience, null, 2));
-
     const defaultLogoPath = path.join(__dirname, '../assets/logo.png');
     const finalLogoPath = logoPath || defaultLogoPath;
 
     const doc = new PDFDocument({
       size: 'A4',
-      margins: { top: 40, left: 40, right: 40, bottom: 40 },
+      margins: { top: 40, left: 40, right: 40, bottom: 80 },
     });
 
     const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
@@ -138,8 +132,6 @@ export class PDFGeneratorService {
     const email = resume.personal?.email ?? '';
     const location = resume.personal?.location ?? '';
     const mobile = resume.personal?.mobile ?? '';
-    // const linkedin = resume.personal?.linkedin ?? '';
-
     const leftX = doc.page.margins.left;
     const rowWidth = contentWidth;
     const colWidth = rowWidth / 2;
@@ -168,19 +160,6 @@ export class PDFGeneratorService {
       width: colWidth,
       align: 'right',
     });
-
-    // Row 3: (blank) | linkedin
-    // yRow = doc.y + 2;
-    // doc.text('', leftX, yRow, {
-    //   width: colWidth,
-    //   align: 'left',
-    // });
-    // doc
-    //   .fillColor('blue')
-    //   .text(linkedin, leftX + colWidth, yRow, {
-    //     width: colWidth,
-    //     align: 'right',
-    //   });
 
     doc.fillColor('black');
     doc.moveDown(0.3);
@@ -224,18 +203,6 @@ export class PDFGeneratorService {
       doc.moveDown(0.3);
     };
 
-    const bulletLines = (lines: string[]) => {
-      doc.font('Helvetica').fontSize(10);
-      lines.forEach((line) => {
-        const text = line.trim();
-        if (!text) return;
-        doc.text(`• ${text}`, {
-          width: contentWidth,
-          align: 'left',
-        });
-      });
-    };
-
     const greySeparator = () => {
       const y = doc.y + 2;
       doc
@@ -245,39 +212,54 @@ export class PDFGeneratorService {
         .strokeColor(this.lightGrey)
         .stroke();
       doc.strokeColor('black');
-      // doc.moveDown(0.8);
     };
 
     // =====================================================================
     // PROFESSIONAL SUMMARY
     // =====================================================================
-    const summaryBullets: string[] =
-      resume.professionalSummary && resume.professionalSummary.length
-        ? resume.professionalSummary
-        : this.splitSummaryToBullets(resume.summary ?? '');
+    const summaryText = (resume.summary ?? '').trim();
 
-    if (summaryBullets.length > 0) {
+    if (summaryText.length > 0) {
       sectionHeader('Professional Summary');
-      bulletLines(summaryBullets);
+      doc.font('Helvetica').fontSize(10).text(summaryText, {
+        width: contentWidth,
+        align: 'justify',
+      });
       doc.moveDown(0.5);
     }
 
     // =====================================================================
     // SKILL SET
     // =====================================================================
-    // =====================================================================
-    // SKILL SET
-    // =====================================================================
-    let technicalSkills: string[] = [];
-    if (Array.isArray(resume.skills)) {
-      technicalSkills = resume.skills;
-    } else if (resume.skills?.technical) {
-      technicalSkills = resume.skills.technical;
+    const categorizedSkills: Record<string, string[]> = {};
+    if (resume.skills && typeof resume.skills === 'object') {
+      for (const [key, value] of Object.entries(resume.skills)) {
+        if (Array.isArray(value)) {
+          const filtered = value.filter((s) => this.hasValue(s));
+          if (filtered.length > 0) {
+            categorizedSkills[key] = filtered;
+          }
+        }
+      }
     }
 
-    if (technicalSkills.length > 0 && technicalSkills.filter((x) => this.hasValue(x)).length > 0) {
+    const nonEmptyCategories = Object.entries(categorizedSkills);
+
+    if (nonEmptyCategories.length > 0) {
       sectionHeader('Skill Set');
-      doc.text(technicalSkills.filter((x) => this.hasValue(x)).join(', '), { width: contentWidth });
+
+      const labelWidth = 160;
+      const valueWidth = contentWidth - labelWidth;
+
+      nonEmptyCategories.forEach(([category, skills]) => {
+        const yPos = doc.y;
+        doc.font('Helvetica-Bold').fontSize(10)
+          .text(category + ':', leftX, yPos, { width: labelWidth });
+        doc.font('Helvetica').fontSize(10)
+          .text(skills.join(', '), leftX + labelWidth, yPos, { width: valueWidth });
+        doc.moveDown(0.4);
+      });
+
       doc.moveDown(0.3);
     }
 
@@ -559,7 +541,6 @@ export class PDFGeneratorService {
 
       return resume;
     } catch (error) {
-      console.error('Error storing resume version:', error);
       return null;
     }
   }
@@ -568,19 +549,7 @@ export class PDFGeneratorService {
   // Helpers
   // ---------------------------------------------------------------------
 
-  private splitSummaryToBullets(summary: string): string[] {
-    if (!summary) return [];
-    // Split by newline or bullet char, filter empties
-    const parts = summary
-      .split(/\n|•/g)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    return parts;
-  }
-
   private sortAndFilterWork(exps: WorkExperience[]): WorkExperience[] {
-    console.log('sortAndFilterWork called with:', JSON.stringify(exps, null, 2));
-
     const currentDate = new Date();
 
     // Filter out future experiences
@@ -589,7 +558,6 @@ export class PDFGeneratorService {
       const to = e.period_to === 'Present' ? new Date() : this.parseYm(e.period_to);
 
       if (!from) {
-        console.log('Skipping due to invalid from date:', e.period_from);
         return false;
       }
 
@@ -597,9 +565,6 @@ export class PDFGeneratorService {
       // and end date is in the past or Present
       const isPastStart = from <= currentDate;
       const isPastEndOrPresent = !to || to <= currentDate || e.period_to === 'Present';
-
-      console.log(`Experience: ${e.company} | From: ${from} | To: ${to}`);
-      console.log(`isPastStart: ${isPastStart}, isPastEndOrPresent: ${isPastEndOrPresent}`);
 
       return isPastStart && isPastEndOrPresent;
     });
@@ -613,12 +578,10 @@ export class PDFGeneratorService {
       return fromB.getTime() - fromA.getTime();
     });
 
-    console.log('sortAndFilterWork returning:', JSON.stringify(filtered, null, 2));
     return filtered;
   }
 
   private parseYm(ym?: string): Date | null {
-    console.log('parseYm input:', ym);
     if (!ym) return null;
     if (ym.toLowerCase() === 'present') return new Date();
 

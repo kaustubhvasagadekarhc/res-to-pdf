@@ -29,7 +29,6 @@ class FileUploadService {
         ],
       });
     } catch (err) {
-      console.error("Appwrite upload error:", err);
       throw new Error("Appwrite storage upload failed");
     }
 

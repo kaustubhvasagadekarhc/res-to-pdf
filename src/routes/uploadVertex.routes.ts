@@ -7,9 +7,9 @@ const router = Router();
 
 /**
  * @swagger
- * /upload:
+ * /upload/vertex:
  *   post:
- *     summary: Upload and parse a resume PDF
+ *     summary: Upload and parse resume using Vertex AI with parse type selection
  *     tags: [Resume]
  *     security:
  *       - bearerAuth: []
@@ -25,20 +25,15 @@ const router = Router();
  *               file:
  *                 type: string
  *                 format: binary
+ *               parseType:
+ *                 type: string
+ *                 enum: [quick, inferred, generative]
+ *                 default: quick
  *     responses:
  *       200:
  *         description: Resume parsed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 uploaded:
- *                   type: object
- *                 parsed:
- *                   type: object
  *       400:
- *         description: File is missing
+ *         description: File is missing or invalid parseType
  *       500:
  *         description: Internal server error
  */

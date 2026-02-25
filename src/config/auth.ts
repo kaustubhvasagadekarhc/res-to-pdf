@@ -1,7 +1,6 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import { JWT_EXPIRY } from './env';
 
 export const jwtConfig = {
-    secret: process.env.JWT_SECRET || 'default_secret_please_change_in_env',
-    expiresIn: '24h',
+    secret: process.env.JWT_SECRET!,
+    expiresIn: JWT_EXPIRY,
 };
