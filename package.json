@@ -13,7 +13,6 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
-    "@google-cloud/vertexai": "^1.10.0",
     "@google/generative-ai": "^0.24.1",
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",

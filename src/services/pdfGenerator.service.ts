@@ -16,8 +16,11 @@ export interface ResumeData {
     gender?: string;
     marital_status?: string;
   };
+  professionalSummary?: string[];
   summary?: string;
-  skills?: Record<string, string[]>;
+  skills?: {
+    technical?: string[];
+  };
   work_experience?: WorkExperience[];
   education?: Education[];
   projects?: Project[];
@@ -248,49 +251,33 @@ export class PDFGeneratorService {
     // =====================================================================
     // PROFESSIONAL SUMMARY
     // =====================================================================
-    const summaryText = (resume.summary ?? '').trim();
+    const summaryBullets: string[] =
+      resume.professionalSummary && resume.professionalSummary.length
+        ? resume.professionalSummary
+        : this.splitSummaryToBullets(resume.summary ?? '');
 
-    if (summaryText.length > 0) {
+    if (summaryBullets.length > 0) {
       sectionHeader('Professional Summary');
-      doc.font('Helvetica').fontSize(10).text(summaryText, {
-        width: contentWidth,
-        align: 'justify',
-      });
+      // bulletLines(summaryBullets);
       doc.moveDown(0.5);
     }
 
     // =====================================================================
     // SKILL SET
     // =====================================================================
-    const categorizedSkills: Record<string, string[]> = {};
-    if (resume.skills && typeof resume.skills === 'object') {
-      for (const [key, value] of Object.entries(resume.skills)) {
-        if (Array.isArray(value)) {
-          const filtered = value.filter((s) => this.hasValue(s));
-          if (filtered.length > 0) {
-            categorizedSkills[key] = filtered;
-          }
-        }
-      }
+    // =====================================================================
+    // SKILL SET
+    // =====================================================================
+    let technicalSkills: string[] = [];
+    if (Array.isArray(resume.skills)) {
+      technicalSkills = resume.skills;
+    } else if (resume.skills?.technical) {
+      technicalSkills = resume.skills.technical;
     }
 
-    const nonEmptyCategories = Object.entries(categorizedSkills);
-
-    if (nonEmptyCategories.length > 0) {
+    if (technicalSkills.length > 0 && technicalSkills.filter((x) => this.hasValue(x)).length > 0) {
       sectionHeader('Skill Set');
-
-      const labelWidth = 160;
-      const valueWidth = contentWidth - labelWidth;
-
-      nonEmptyCategories.forEach(([category, skills]) => {
-        const yPos = doc.y;
-        doc.font('Helvetica-Bold').fontSize(10)
-          .text(category + ':', leftX, yPos, { width: labelWidth });
-        doc.font('Helvetica').fontSize(10)
-          .text(skills.join(', '), leftX + labelWidth, yPos, { width: valueWidth });
-        doc.moveDown(0.4);
-      });
-
+      doc.text(technicalSkills.filter((x) => this.hasValue(x)).join(', '), { width: contentWidth });
       doc.moveDown(0.3);
     }
 
@@ -580,6 +567,16 @@ export class PDFGeneratorService {
   // ---------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------
+
+  private splitSummaryToBullets(summary: string): string[] {
+    if (!summary) return [];
+    // Split by newline or bullet char, filter empties
+    const parts = summary
+      .split(/\n|•/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return parts;
+  }
 
   private sortAndFilterWork(exps: WorkExperience[]): WorkExperience[] {
     console.log('sortAndFilterWork called with:', JSON.stringify(exps, null, 2));

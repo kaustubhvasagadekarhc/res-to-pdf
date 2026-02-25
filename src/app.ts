@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import uploadRoutes from './routes/upload.routes';
-import uploadVertexRoutes from './routes/uploadVertex.routes';
 import pdfRoutes from './routes/pdf.routes';
 import authRoutes from './routes/auth.routes';
 import resumeRoutes from './routes/resume.routes';
@@ -38,7 +37,6 @@ app.get("/api/docs.json", (req: Request, res: Response) => {
 app.use('/auth', authRoutes);
 
 app.use('/upload', authenticate, uploadRoutes);
-app.use('/upload/vertex', authenticate, uploadVertexRoutes);
 app.use('/generate/pdf', authenticate, pdfRoutes);
 app.use('/resume', authenticate, resumeRoutes);
 app.use('/dashboard', authenticate, dashboardRoutes);
