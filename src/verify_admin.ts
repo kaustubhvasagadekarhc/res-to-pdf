@@ -4,9 +4,19 @@ import fs from 'fs';
 import path from 'path';
 
 // Helper to print step results
-const step = (_name: string) => { /* ignored */ };
-const success = (_msg: string) => { /* ignored */ };
-const fail = (_msg: string, _err: unknown) => { /* ignored */ };
+const step = (name: string) => console.log(`\n🔹 [STEP] ${name}`);
+const success = (msg: string) => console.log(`   ✅ ${msg}`);
+const fail = (msg: string, err: unknown) => {
+    console.error(`   ❌ ${msg}`);
+    if (isAxiosError(err) && err.response) {
+        console.error(`      Status: ${err.response.status}`);
+        console.error(`      Data:`, err.response.data);
+    } else if (err instanceof Error) {
+        console.error(`      Error:`, err.message);
+    } else {
+        console.error(`      Error:`, String(err));
+    }
+};
 
 const BASE_URL = process.env.API_URL || 'http://localhost:5001'; // Adjust port if needed
 // const ADMIN_TOKEN = '...'; // Needs to be obtained via login or hardcodded if possible
@@ -14,6 +24,8 @@ const BASE_URL = process.env.API_URL || 'http://localhost:5001'; // Adjust port 
 // If no admin exists, we might need to seed one.
 
 async function runTests() {
+    console.log('🚀 Starting Admin Flow Verification...');
+
     let adminToken = '';
     let userIdToDelete = '';
 
@@ -33,6 +45,7 @@ async function runTests() {
         // We will send it in header.
         if (!adminToken && res.headers['set-cookie']) {
         // quick hack if token is only in cookie, but ideally login returns token
+            console.log('   ⚠️ Token might be in cookie only. We need token for headers.');
         }
         success('Logged in as Admin');
     } catch (error) {
@@ -46,6 +59,7 @@ async function runTests() {
     step('Get All Users');
     try {
         const res = await axios.get(`${BASE_URL}/admin/users`, { headers });
+        console.log(`   Users found: ${res.data.data.length}`);
         success('Fetched users successfully');
     } catch (error) {
         fail('Failed to fetch users', error);
@@ -67,8 +81,9 @@ async function runTests() {
             // Axios with FormData in Node is tricky without 'form-data' package, 
             // so this might be harder to run in pure node script without deps.
             // Skipping this part or using a mock approach.
+            console.log('   ⚠️ Skipping file upload test (requires form-data package or valid file)');
         } else {
-            // No sample PDF found, skipping Parse test.
+            console.log('   ⚠️ No sample PDF found, skipping Parse test.');
         }
     } catch (error) {
         // fail('Parse failed', error);
@@ -85,6 +100,9 @@ async function runTests() {
         }, { headers });
 
         success(`Invited user: ${newEmail}`);
+        if (res.data.data.tempPassword) {
+            console.log(`   Temp Password received: ${res.data.data.tempPassword}`);
+        }
         userIdToDelete = res.data.data.id;
     } catch (error) {
         fail('Invite failed', error);
@@ -115,6 +133,7 @@ async function runTests() {
         }
     }
 
+    console.log('\n🏁 Verification Complete.');
 }
 
 runTests();

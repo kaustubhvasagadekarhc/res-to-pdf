@@ -5,7 +5,7 @@ export interface ResumeData {
         [key: string]: unknown;
     };
     summary?: string;
-    skills?: Record<string, string[]> | string[];
+    skills?: string[];
     work_experience?: unknown[];
     education?: unknown[];
     projects?: unknown[];

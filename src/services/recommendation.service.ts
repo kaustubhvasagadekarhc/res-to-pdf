@@ -50,6 +50,7 @@ export class RecommendationService {
         try {
             return JSON.parse(cleanText);
         } catch (e) {
+            console.error('Failed to parse AI response:', responseText);
             throw new Error('Invalid JSON response from AI');
         }
     }
