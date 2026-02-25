@@ -29,9 +29,7 @@ app.use(morgan('combined'));
 app.use(generalLimiter);
 
 // CORS configuration
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
-  : ['http://localhost:3000'];
+const allowedOrigins = ["https://res-to-pdf.vercel.app/", "http://localhost:3000"];
 
 app.use(cors({
   origin: allowedOrigins,
