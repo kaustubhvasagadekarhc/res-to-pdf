@@ -3,7 +3,7 @@
  * Centralized token generation and verification
  */
 import jwt from 'jsonwebtoken';
-import { config } from '../config/env';
+import { config, JWT_EXPIRY } from '../config/env';
 
 export interface TokenPayload {
   id: string;
@@ -16,7 +16,7 @@ export interface TokenPayload {
  */
 export const generateToken = (payload: TokenPayload): string => {
   return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: '7d',
+    expiresIn: JWT_EXPIRY,
   });
 };
 
@@ -26,4 +26,3 @@ export const generateToken = (payload: TokenPayload): string => {
 export const verifyToken = (token: string): TokenPayload => {
   return jwt.verify(token, config.jwt.secret) as TokenPayload;
 };
-

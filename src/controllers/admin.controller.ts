@@ -179,12 +179,10 @@ export const inviteUser = async (req: Request, res: Response) => {
             data: {
                 id: newUser.id,
                 email: newUser.email,
-                tempPassword // Returning in response for testing convenience, usually don't do this
             }
         });
 
     } catch (error) {
-        console.error("Invite Error:", error);
         res.status(500).json({ status: 'error', message: 'Failed to invite user' });
     }
 };
@@ -222,7 +220,6 @@ export const parseResume = async (req: Request, res: Response) => {
         });
 
     } catch (error) {
-        console.error("Parse Error:", error);
         res.status(500).json({ status: 'error', message: 'Failed to parse resume' });
     }
 };

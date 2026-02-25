@@ -1,5 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import uploadRoutes from './routes/upload.routes';
 import uploadVertexRoutes from './routes/uploadVertex.routes';
@@ -8,34 +10,46 @@ import authRoutes from './routes/auth.routes';
 import resumeRoutes from './routes/resume.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import { authenticate } from './middleware/auth.middleware';
-
 import adminRoutes from './routes/admin.routes';
 import recommendationRoutes from './routes/recommendation.routes';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger';
+import { globalErrorHandler } from './middleware/errorHandler';
+import { generalLimiter, authLimiter } from './middleware/rateLimiter';
 
 const app = express();
 
-// CORS configuration for cookie-based authentication
+// Security headers
+app.use(helmet());
+
+// Request logging
+app.use(morgan('combined'));
+
+// Rate limiting
+app.use(generalLimiter);
+
+// CORS configuration
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+  : ['http://localhost:3000'];
+
 app.use(cors({
-  origin: ['http://localhost:3000','http://localhost:3001', "https://res-to-pdf.vercel.app"],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
-// api call from swagger to get the json spec
 app.get("/api/docs.json", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "application/json");
   res.send(specs);
 });
 
-
-app.use('/auth', authRoutes);
+app.use('/auth', authLimiter, authRoutes);
 
 app.use('/upload', authenticate, uploadRoutes);
 app.use('/upload/vertex', authenticate, uploadVertexRoutes);
@@ -44,18 +58,13 @@ app.use('/resume', authenticate, resumeRoutes);
 app.use('/dashboard', authenticate, dashboardRoutes);
 
 app.use('/admin', adminRoutes);
-// Admin routes often have their own auth, but let's leave as is or inspect. 
-// Wait, admin routes often handle their own auth or expect global auth?
-// Let's look at admin.routes.ts, it likely has `authenticate` inside.
-// For now, I'll only add it to the explicit failures.
 app.use('/recommendation', recommendationRoutes);
-// Recommendation might be public or hybrid? Let's assume we want to log if user is there.
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     uptime: process.uptime(),
@@ -63,5 +72,8 @@ app.get('/health', (req, res) => {
     pid: process.pid,
   });
 });
+
+// Global error handler — must be last
+app.use(globalErrorHandler);
 
 export default app;

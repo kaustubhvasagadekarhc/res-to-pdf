@@ -58,7 +58,6 @@ router.post('/', activityLogger, async (req, res) => {
 
     await pdfGeneratorService.generatePDF(resumeData, res, userId);
   } catch (err: unknown) {
-    console.error('PDF Generation Error:', err);
     const message = err instanceof Error ? err.message : 'Unknown error';
     return res.status(500).json({ error: message });
   }

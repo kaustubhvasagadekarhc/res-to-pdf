@@ -291,7 +291,7 @@ export const activityLogger = async (req: Request, res: Response, next: NextFunc
                 description,
                 enhancedMetadata
             )
-            .catch((err) => console.error('Activity logging failed', err));
+            .catch(() => { /* ignored */ });
     });
 
     next();

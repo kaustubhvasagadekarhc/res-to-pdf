@@ -2,7 +2,6 @@ import { fileUploadService } from './fileUpload.service';
 import { parseService } from './parse.service';
 import prisma from '../config/database';
 import { activityService } from './activity.service';
-// import { parseResumeWithVertexAI } from './vertexAI.service';
 
 export class ResumeService {
   /**
@@ -13,7 +12,6 @@ export class ResumeService {
   async processResumeUpload(
     file: Express.Multer.File,
     userId: string,
-    // parseType: 'quick' | 'inferred' | 'generative' = 'quick'
   ) {
     if (!file) {
       throw new Error('File is required');
@@ -34,9 +32,7 @@ export class ResumeService {
           appwriteFileId: uploaded.fileId,
         },
       });
-      console.log('Created resume with ID:', resume.id);
     } catch (error) {
-      console.error('Failed to create resume record:', error);
       throw new Error(
         `Database error: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
