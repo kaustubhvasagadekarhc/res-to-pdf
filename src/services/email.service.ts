@@ -19,7 +19,9 @@ export const sendOtpEmail = async (email: string, otp: string) => {
 
     try {
         await transporter.sendMail(mailOptions);
+        console.log(`OTP sent to ${email}`);
     } catch (error) {
+        console.error('Error sending email:', error);
         throw new Error('Failed to send verification email');
     }
 };
@@ -36,7 +38,9 @@ export const sendConnectionRequestEmail = async (email: string, senderName: stri
 
     try {
         await transporter.sendMail(mailOptions);
+        console.log(`Connection request email sent to ${email}`);
     } catch (error) {
+        console.error('Error sending connection request email:', error);
         // Don't throw error to avoid blocking the request
     }
 };
@@ -53,7 +57,9 @@ export const sendInvitationEmail = async (email: string, senderName: string) => 
 
     try {
         await transporter.sendMail(mailOptions);
+        console.log(`Invitation email sent to ${email}`);
     } catch (error) {
+        console.error('Error sending invitation email:', error);
         // Don't throw error to avoid blocking the request
     }
 };
@@ -82,7 +88,9 @@ export const sendAdminInvitationEmail = async (email: string, name: string, temp
 
     try {
         await transporter.sendMail(mailOptions);
+        console.log(`Admin invitation email sent to ${email}`);
     } catch (error) {
+        console.error('Error sending admin invitation email:', error);
         throw new Error('Failed to send invitation email');
     }
 };
@@ -110,7 +118,9 @@ export const sendPasswordResetOtpEmail = async (email: string, otp: string) => {
 
     try {
         await transporter.sendMail(mailOptions);
+        console.log(`Password reset OTP sent to ${email}`);
     } catch (error) {
+        console.error('Error sending password reset email:', error);
         throw new Error('Failed to send password reset email');
     }
 };

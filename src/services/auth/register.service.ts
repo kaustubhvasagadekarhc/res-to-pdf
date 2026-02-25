@@ -2,7 +2,8 @@ import bcrypt from 'bcrypt';
 import prisma from '../../config/database';
 import { sendOtpEmail } from '../email.service';
 import { activityService } from '../activity.service';
-import { generateOtp } from '../../utils/otp';
+
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 export const registerUser = async (userData: {
   email: string;
