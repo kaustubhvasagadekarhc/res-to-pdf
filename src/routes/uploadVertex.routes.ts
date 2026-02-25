@@ -44,18 +44,11 @@ router.post("/", activityLogger, upload.single("file"), async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: "User not authenticated" });
 
-    const parseType = (req.body.parseType || 'quick') as 'quick' | 'inferred' | 'generative';
-    
-    if (!['quick', 'inferred', 'generative'].includes(parseType)) {
-      return res.status(400).json({ error: "Invalid parseType. Must be 'quick', 'inferred', or 'generative'" });
-    }
-
-    const result = await resumeService.processResumeUpload(req.file, userId, parseType);
+    const result = await resumeService.processResumeUpload(req.file, userId);
 
     return res.json(result);
 
   } catch (err: unknown) {
-    console.error("Vertex AI Upload+Parse Error:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return res.status(500).json({ error: message });
   }

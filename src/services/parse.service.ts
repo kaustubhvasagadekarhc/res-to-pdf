@@ -5,14 +5,13 @@ import { ParsedResume } from '../interfaces/resume/resume.interface';
 export class ParseService {
   private genAI: GoogleGenerativeAI;
   private model: GenerativeModel;
-
+  
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
   }
 
-  async parseResume(pdfUrl: string, resId: string | undefined, parseType?: 'quick' | 'inferred' | 'generative'): Promise<ParsedResume> {
-    const parseMode = parseType || 'quick';
+  async parseResume(pdfUrl: string, resId: string | undefined): Promise<ParsedResume> {
     const prompt = `You are an expert resume parser with 20+ years of experience analyzing professional documents across all industries and seniority levels.
 
 Your task: Read the resume text (or structured JSON) and return ONLY valid JSON following the exact structure below.
@@ -29,31 +28,39 @@ Critical Rules:
 SPECIAL INSTRUCTIONS FOR KEY FIELDS:
 
 **summary field:**
-- Extract and synthesize the candidate's professional profile into a comprehensive, first-person summary.
+- Extract and synthesize the candidate's professional profile into a single, comprehensive paragraph.
 - Write as if the candidate is speaking about themselves directly (use "I", "my", "me").
-- The summary MUST be at least 5 well-developed paragraphs (each paragraph 10-20+ words max).
-- Paragraph 1: My overall professional identity, years of experience, core expertise, and what drives my career.
-- Paragraph 2: My key technical competencies, domain knowledge, and the technologies/methodologies I specialize in.
-- Paragraph 3: My notable achievements, measurable impact, and tangible results I've delivered in my roles.
-- Paragraph 4: My leadership qualities, collaboration style, soft skills, and professional philosophy that guides my work.
-- Paragraph 5: My career vision, unique value proposition, what I bring to organizations, and where I aspire to grow.
-- Optional Paragraph 6+: Any additional depth on industry experience, certifications, thought leadership, or specialized expertise.
-- Ensure paragraphs flow naturally and highlight my strongest qualifications with conviction.
+- The summary MUST be a single continuous paragraph (NO line breaks, NO multiple paragraphs).
+- The paragraph should be 80-150 words covering: professional identity, years of experience, core expertise, key technical competencies, notable achievements, and career vision.
 - Use first-person professional language; avoid generic or passive statements.
 - Make it compelling and authentic, reflecting the candidate's voice and impact.
+- Do NOT split into multiple paragraphs or use newline characters.
 
 **work_experience[] and projects[] (nested and standalone):**
-- Duration fromat must be 1 year 3 months based on period_from and period_to.
+- Duration format must be 1 year 3 months based on period_from and period_to.
 - De-duplicate projects that appear in both work_experience and the standalone projects section.
+- The "responsibilities" array in each work_experience entry MUST NEVER be empty. Every role must have at least 3 responsibilities.
+- If responsibilities are not explicitly listed in the resume, infer them from the job title, company context, and any project descriptions associated with that role.
+- The "technologies" array in each standalone project MUST NEVER be empty. Extract technologies from the project description, or infer relevant technologies based on the project context. Each project must have at least 2 technologies.
 
 **skills field:**
-- Extract all technical skills, programming languages, frameworks, tools.
-- Organize by category if evident (e.g., "JavaScript, TypeScript, React" or "AWS, Docker, Kubernetes").
-- Return as an array of strings, each skill/skillset clearly labeled.
+- Extract all technical skills, programming languages, frameworks, tools, databases, operating systems, IDEs, and servers.
+- Return as an object with EXACTLY these 7 category keys: "Technologies", "Languages", "Tools", "Databases", "Operating Systems", "IDE's", "Application/Web Server's".
+- ALL 7 categories MUST always be present in the output.
+- Each category MUST have at least 3 relevant skills. If the resume does not explicitly list enough skills for a category, infer relevant skills from the candidate's work experience, projects, technologies used, and job context.
+- "Technologies": Frameworks, libraries, platforms (e.g., React, Node.js, Spring Boot, Angular, .NET).
+- "Languages": Programming and scripting languages (e.g., JavaScript, Python, Java, C++, TypeScript).
+- "Tools": Development tools, CI/CD, version control, testing tools (e.g., Git, Docker, Jenkins, Webpack, Postman).
+- "Databases": Database systems (e.g., PostgreSQL, MongoDB, MySQL, Redis, Oracle).
+- "Operating Systems": OS platforms (e.g., Linux, Windows, macOS, Ubuntu).
+- "IDE's": Integrated development environments and code editors (e.g., VS Code, IntelliJ IDEA, Eclipse).
+- "Application/Web Server's": Application and web servers (e.g., Apache, Nginx, Tomcat, IIS).
+- Do NOT create any additional category names beyond these 7.
+- Example: {"Technologies": ["React", "Node.js"], "Languages": ["JavaScript", "Python"], "Tools": ["Git", "Docker"], "Databases": ["PostgreSQL", "MongoDB"], "Operating Systems": ["Linux"], "IDE's": ["VS Code"], "Application/Web Server's": ["Nginx"]}
 
 **education field:**
 - graduation_year: Extract as YYYY format (e.g., "2020"). If only season is given (e.g., "Summer 2020"), use just the year. If unknown, leave empty string.
-- Include certifications or additional training if listed separately.
+- Do NOT include certifications, courses, training programs, or online certificates in this section. Only include formal academic degrees (e.g., B.Tech, M.Sc, MBA, PhD).
 
 **personal field:**
 - Extract only non-sensitive contact information (name, email, mobile, location, designation/title).
@@ -81,13 +88,14 @@ Required JSON structure (do not modify):
     "marital_status": ""
   },
   "summary": "",
-  "skills": [],
+  "skills": {},
   "work_experience": [{
     "company": "",
     "position": "",
     "duration": "",
     "period_from": "",
     "period_to": "",
+    "responsibilities": [],
     "projects": [{
       "name": "",
       "description": "",
@@ -106,7 +114,7 @@ Required JSON structure (do not modify):
     "technologies": []
   }]
 }`;
-    // Fetch PDF
+
     const response = await fetch(pdfUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status}`);
@@ -117,14 +125,13 @@ Required JSON structure (do not modify):
     const result = await this.model.generateContent([
       {
         inlineData: {
-          mimeType: 'application/pdf', // Changed from application/pdf to work with gemini
+          mimeType: 'application/pdf', 
+
           data: buffer.toString('base64'),
         },
       },
       prompt,
     ]);
-
-    // console.log(result.response.text())
 
     const responseText = result.response.text();
 
@@ -140,26 +147,15 @@ Required JSON structure (do not modify):
       throw new Error('Invalid JSON response from AI');
     }
 
-    // Save to database
-    if (resId) {
-      console.log('Attempting to create sections for resumeId:', resId);
 
-      // Verify resume exists
+    if (resId) {
+
       const resumeExists = await prisma.resume.findUnique({ where: { id: resId } });
-      console.log('Resume exists:', !!resumeExists);
 
       if (!resumeExists) {
         throw new Error(`Resume with ID ${resId} not found`);
       }
 
-      // console.log('Creating single resume section entry');
-      // await prisma.resumeVersions.create({
-      //   data: {
-      //     resumeId: resId,
-      //     section: 'resumeJson',
-      //     content: JSON.stringify(parsed)
-      //   }
-      // });
     }
 
     return parsed;
