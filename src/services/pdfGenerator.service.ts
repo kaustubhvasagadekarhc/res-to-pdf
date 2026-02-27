@@ -51,6 +51,7 @@ export interface Education {
 export class PDFGeneratorService {
   private readonly primary = '#2150A2';
   private readonly lightGrey = '#E0E0E0';
+  private readonly footerSpace = 80;
   // Returns true if a string has text
   private hasValue(val?: string | null): boolean {
     return !!val && val.trim() !== '';
@@ -107,7 +108,7 @@ export class PDFGeneratorService {
 
     const doc = new PDFDocument({
       size: 'A4',
-      margins: { top: 40, left: 40, right: 40, bottom: 80 },
+      margins: { top: 40, left: 40, right: 40, bottom: this.footerSpace },
     });
 
     const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;

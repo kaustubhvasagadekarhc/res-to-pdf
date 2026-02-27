@@ -13,6 +13,7 @@ import {
 } from '../controllers/auth.controller';
 import { activityLogger } from '../middleware/activityLogger.middleware';
 import { authenticate } from '../middleware/auth.middleware';
+import { authLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -56,7 +57,7 @@ router.get('/token', getToken);
  *       201:
  *         description: User registered successfully
  */
-router.post('/register', activityLogger, register);
+router.post('/register', authLimiter, activityLogger, register);
 /**
  * @swagger
  * /auth/login:
@@ -78,7 +79,7 @@ router.post('/register', activityLogger, register);
  *       200:
  *         description: Login successful
  */
-router.post('/login', activityLogger, login);
+router.post('/login', authLimiter, activityLogger, login);
 /**
  * @swagger
  * /auth/verify-otp:
@@ -100,7 +101,7 @@ router.post('/login', activityLogger, login);
  *       200:
  *         description: OTP verified successfully
  */
-router.post('/verify-otp', activityLogger, verifyOtp);
+router.post('/verify-otp', authLimiter, activityLogger, verifyOtp);
 /**
  * @swagger
  * /auth/resend-otp:
@@ -120,7 +121,7 @@ router.post('/verify-otp', activityLogger, verifyOtp);
  *       200:
  *         description: OTP resent successfully
  */
-router.post('/resend-otp', activityLogger, resendOtp);
+router.post('/resend-otp', authLimiter, activityLogger, resendOtp);
 
 /**
  * @swagger
@@ -195,7 +196,7 @@ router.get('/vetlly/callback', activityLogger, vettlyCallback);
  *       200:
  *         description: Password reset code sent successfully
  */
-router.post('/forgot-password', activityLogger, forgotPasswordController);
+router.post('/forgot-password', authLimiter, activityLogger, forgotPasswordController);
 
 /**
  * @swagger
@@ -222,6 +223,6 @@ router.post('/forgot-password', activityLogger, forgotPasswordController);
  *       200:
  *         description: Password reset successfully
  */
-router.post('/reset-password', activityLogger, resetPasswordController);
+router.post('/reset-password', authLimiter, activityLogger, resetPasswordController);
 
 export default router;
